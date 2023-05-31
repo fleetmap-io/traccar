@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.traccar.BaseDataHandler;
 import org.traccar.database.DataManager;
 import org.traccar.model.Position;
+import redis.clients.jedis.Jedis;
 
 @ChannelHandler.Sharable
 public class DefaultDataHandler extends BaseDataHandler {
@@ -29,17 +30,18 @@ public class DefaultDataHandler extends BaseDataHandler {
 
     private final DataManager dataManager;
 
+    private final Jedis jedis;
+
     public DefaultDataHandler(DataManager dataManager) {
         this.dataManager = dataManager;
+        this.jedis = new Jedis("redis.pinme.io");
     }
 
     @Override
     protected Position handlePosition(Position position) {
 
         try {
-            dataManager.addObject(position);
-        } catch(com.mysql.cj.jdbc.exceptions.MysqlDataTruncation error) {
-            LOGGER.warn("Failed to store position, deviceId: {}, {}", position.getDeviceId(), error.getMessage());
+            position.setId(jedis.incr("dbid"));
         } catch (Exception error) {
             LOGGER.warn("Failed to store position", error);
         }
