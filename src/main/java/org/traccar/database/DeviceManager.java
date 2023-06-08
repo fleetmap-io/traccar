@@ -313,7 +313,7 @@ public class DeviceManager extends BaseObjectManager<Device> implements Identity
     }
 
     public void updateDeviceStatus(Device device) throws SQLException {
-        getDataManager().updateDeviceStatus(device);
+        // getDataManager().updateDeviceStatus(device);
         Device cachedDevice = getById(device.getId());
         if (cachedDevice != null) {
             cachedDevice.setStatus(device.getStatus());
