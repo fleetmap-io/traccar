@@ -107,7 +107,7 @@ public class DeviceManager extends BaseObjectManager<Device> implements Identity
         long lastUpdate = devicesLastUpdate.get();
         if ((force || System.currentTimeMillis() - lastUpdate > dataRefreshDelay)
                 && devicesLastUpdate.compareAndSet(lastUpdate, System.currentTimeMillis())) {
-            refreshItems();
+            // refreshItems();
         }
     }
 
