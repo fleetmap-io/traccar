@@ -104,7 +104,7 @@ public final class ReportUtils {
         double firstOdometer = firstPosition.getDouble(Position.KEY_ODOMETER);
         double lastOdometer = lastPosition.getDouble(Position.KEY_ODOMETER);
 
-        if (useOdometer && (firstOdometer != 0.0 || lastOdometer != 0.0)) {
+        if (useOdometer && firstOdometer > 0.0 && lastOdometer > 0.0) {
             distance = lastOdometer - firstOdometer;
         } else if (firstPosition.getAttributes().containsKey("source")
                 || (firstPosition.getProtocol() != null && firstPosition.getProtocol().equals("osmand"))) {
