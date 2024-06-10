@@ -1136,20 +1136,32 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
             .text("$").optional()
             .compile();
 
-    private Object decodeIgn(Channel channel, SocketAddress remoteAddress, String sentence) {
-        Parser parser = new Parser(PATTERN_IGN, sentence);
-        Position position = initPosition(parser, channel, remoteAddress);
-        if (position == null) {
+    private Object decodeIgn(Channel channel, SocketAddress remoteAddress, String[] v, String type) throws ParseException {
+        int index = 1; // header
+        String protocolVersion = v[index++]; // protocol version
+        DeviceSession deviceSession = getDeviceSession(channel, remoteAddress, v[index++]);
+        if (deviceSession == null) {
             return null;
         }
+        Position position = new Position(getProtocolName());
+        position.setDeviceId(deviceSession.getDeviceId());
 
-        decodeLocation(position, parser);
+        String model = getDeviceModel(deviceSession, protocolVersion);
+        index += 1; // device name
+        index += 1; // duration of ignition on / off
 
-        position.set(Position.KEY_IGNITION, sentence.contains("IGN"));
-        position.set(Position.KEY_HOURS, parseHours(parser.next()));
-        position.set(Position.KEY_ODOMETER, parser.nextDouble() * 1000);
+        decodeLocation(position, model, v, index);
 
-        decodeDeviceTime(position, parser);
+        position.set(Position.KEY_IGNITION, type.equals("IGN"));
+        position.set(Position.KEY_HOURS, parseHours(v[index++]));
+        position.set(Position.KEY_ODOMETER, Double.parseDouble(v[index++]) * 1000);
+
+        Date time = dateFormat.parse(v[v.length - 2]);
+        if (ignoreFixTime) {
+            position.setTime(time);
+        } else {
+            position.setDeviceTime(time);
+        }
 
         return position;
     }
@@ -1767,7 +1779,7 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
                     break;
                 case "IGN":
                 case "IGF":
-                    result = decodeIgn(channel, remoteAddress, sentence);
+                    result = decodeIgn(channel, remoteAddress, values, type);
                     break;
                 case "LSW":
                 case "TSW":
