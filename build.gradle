@@ -9,6 +9,11 @@ repositories {
     mavenCentral()
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
 ext {
     guiceVersion = "4.2.3"
     jettyVersion = "9.4.30.v20200611"
