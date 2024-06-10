@@ -431,6 +431,9 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
             index += 1; // csq rssi
             index += 1; // csq ber
         }
+        if (model.startsWith("GV310")) {
+            index += 1; // position append mask
+        }
 
         if (!values[index++].isEmpty()) {
             int appendMask = Integer.parseInt(values[index - 1]);
