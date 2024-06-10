@@ -37,14 +37,52 @@ import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
+
+    private static final Map<String, String> PROTOCOL_MODELS = Map.ofEntries(
+            Map.entry("02", "GL200"),
+            Map.entry("04", "GV200"),
+            Map.entry("06", "GV300"),
+            Map.entry("08", "GMT100"),
+            Map.entry("09", "GV50P"),
+            Map.entry("0F", "GV55"),
+            Map.entry("10", "GV55 LITE"),
+            Map.entry("11", "GL500"),
+            Map.entry("1A", "GL300"),
+            Map.entry("1F", "GV500"),
+            Map.entry("25", "GV300"),
+            Map.entry("27", "GV300W"),
+            Map.entry("28", "GL300VC"),
+            Map.entry("2C", "GL300W"),
+            Map.entry("2F", "GV55"),
+            Map.entry("30", "GL300"),
+            Map.entry("31", "GV65"),
+            Map.entry("35", "GV200"),
+            Map.entry("36", "GV500"),
+            Map.entry("3F", "GMT100"),
+            Map.entry("40", "GL500"),
+            Map.entry("41", "GV75W"),
+            Map.entry("42", "GT501"),
+            Map.entry("44", "GL530"),
+            Map.entry("45", "GB100"),
+            Map.entry("50", "GV55W"),
+            Map.entry("52", "GL50"),
+            Map.entry("55", "GL50B"),
+            Map.entry("5E", "GV500MAP"),
+            Map.entry("6E", "GV310LAU"),
+            Map.entry("BD", "CV200"),
+            Map.entry("C2", "GV600M"),
+            Map.entry("DC", "GV600MG"),
+            Map.entry("DE", "GL500M"),
+            Map.entry("F1", "GV350M"),
+            Map.entry("F8", "GV800W"),
+            Map.entry("FC", "GV600W"),
+            Map.entry("802004", "GV58LAU"),
+            Map.entry("802005", "GV355CEU"));
 
     private boolean ignoreFixTime;
 
@@ -60,9 +98,19 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
     }
 
 
-    private String getDeviceModel(DeviceSession deviceSession, String value) {
-        String model = value.isEmpty() ? getDeviceModel(deviceSession) : value;
-        return model != null ? model.toUpperCase() : "";
+    private String getDeviceModel(DeviceSession deviceSession, String protocolVersion) {
+        String declaredModel = getDeviceModel(deviceSession);
+        if (declaredModel != null) {
+            return declaredModel.toUpperCase();
+        }
+        String versionPrefix;
+        if (protocolVersion.length() > 6) {
+            versionPrefix = protocolVersion.substring(0, 6);
+        } else {
+            versionPrefix = protocolVersion.substring(0, 2);
+        }
+        String model = PROTOCOL_MODELS.get(versionPrefix);
+        return model != null ? model : "";
     }
 
     private Position initPosition(Parser parser, Channel channel, SocketAddress remoteAddress) {
@@ -830,66 +878,10 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
             .text("$").optional()
             .compile();
 
-    private Object decodeFriGV310LAU(Channel channel, SocketAddress remoteAddress, String sentence) {
-
-        Parser parser = new Parser(PATTERN_FRI_GV310LAU, sentence);
-        if (!parser.matches()) {
-            return null;
-        }
-
-        DeviceSession deviceSession = getDeviceSession(channel, remoteAddress, parser.next());
-        if (deviceSession == null) {
-            return null;
-        }
-
-        LinkedList<Position> positions = new LinkedList<>();
-
-        String deviceName = parser.next();
-        Integer power = parser.nextInt();
-        Integer reportType = parser.nextInt();
-
-        Parser itemParser = new Parser(PATTERN_LOCATION, parser.next());
-        while (itemParser.find()) {
-            Position position = new Position(getProtocolName());
-            position.setDeviceId(deviceSession.getDeviceId());
-
-            decodeLocation(position, itemParser);
-
-            positions.add(position);
-        }
-
-        Position position = positions.getLast();
-
-        skipLocation(parser);
-
-        if (power != null && power > 10) {
-            position.set(Position.KEY_POWER, power * 0.001); // only on some devices
-        }
-
-        if (parser.hasNext()) {
-            position.set(Position.KEY_ODOMETER, parser.nextDouble() * 1000);
-            position.set(Position.KEY_HOURS, parseHours(parser.next()));
-            position.set(Position.PREFIX_ADC + 1, parser.next());
-            position.set(Position.PREFIX_ADC + 2, parser.next());
-            position.set(Position.PREFIX_ADC + 3, parser.next());
-            position.set(Position.KEY_BATTERY_LEVEL, parser.nextInt());
-        }
-        if (parser.hasNext()) {
-            decodeStatus(position, parser.nextHexLong());
-        }
-
-        decodeDeviceTime(position, parser);
-        if (ignoreFixTime) {
-            positions.clear();
-            positions.add(position);
-        }
-
-        return positions;
-    }
-    private Object decodeFri(Channel channel, SocketAddress remoteAddress, String sentence) {
+    private Object decodeFri(Channel channel, SocketAddress remoteAddress, String sentence, String[] values) throws ParseException {
         String protocolVersion = sentence.split(",")[1];
         if (protocolVersion.startsWith("6E")) {
-            return decodeFriGV310LAU(channel, remoteAddress, sentence);
+            return decodeFri(channel, remoteAddress, values);
         }
         Parser parser = new Parser(PATTERN_FRI, sentence);
         if (!parser.matches()) {
@@ -1051,6 +1043,64 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
                     index += 1; // volume
                 }
             }
+        }
+
+        Date time = dateFormat.parse(v[v.length - 2]);
+        if (ignoreFixTime) {
+            position.setTime(time);
+            positions.clear();
+            positions.add(position);
+        } else {
+            position.setDeviceTime(time);
+        }
+
+        return positions;
+    }
+
+    private Object decodeFri(Channel channel, SocketAddress remoteAddress, String[] v) throws ParseException {
+        int index = 0;
+        index += 1; // header
+        index += 1; // protocol version
+        DeviceSession deviceSession = getDeviceSession(channel, remoteAddress, v[index++]);
+        if (deviceSession == null) {
+            return null;
+        }
+
+        String model = getDeviceModel(deviceSession, v[index++]);
+        long mask = Long.parseLong(v[index++], 16);
+        Double power = v[index++].isEmpty() ? null : Integer.parseInt(v[index - 1]) * 0.001;
+        index += 1; // report type
+
+        int count = Integer.parseInt(v[index++]);
+        LinkedList<Position> positions = new LinkedList<>();
+        for (int i = 0; i < count; i++) {
+            Position position = new Position(getProtocolName());
+            position.setDeviceId(deviceSession.getDeviceId());
+            index = decodeLocation(position, model, v, index);
+            positions.add(position);
+        }
+
+        Position position = positions.getLast();
+        position.set(Position.KEY_POWER, power);
+
+        if (!model.startsWith("GL5")) {
+            position.set(Position.KEY_ODOMETER, v[index++].isEmpty() ? null : Double.parseDouble(v[index - 1]) * 1000);
+            position.set(Position.KEY_HOURS, parseHours(v[index++]));
+            position.set(Position.PREFIX_ADC + 1, v[index++].isEmpty() ? null : Integer.parseInt(v[index - 1]) * 0.001);
+        }
+        if (model.startsWith("GV") && !model.startsWith("GV6")) {
+            position.set(Position.PREFIX_ADC + 2, v[index++].isEmpty() ? null : Integer.parseInt(v[index - 1]) * 0.001);
+        }
+        if (model.startsWith("GV310")) {
+            position.set(Position.PREFIX_ADC + 3, v[index++].isEmpty() ? null : Integer.parseInt(v[index - 1]) * 0.001);
+        }
+
+        position.set(Position.KEY_BATTERY_LEVEL, v[index++].isEmpty() ? null : Integer.parseInt(v[index - 1]));
+        if (model.startsWith("GL5")) {
+            index += 1; // mode selection
+            position.set(Position.KEY_MOTION, v[index++].isEmpty() ? null : Integer.parseInt(v[index - 1]) > 0);
+        } else if (!v[index++].isEmpty()) {
+            decodeStatus(position, Long.parseLong(v[index - 1]));
         }
 
         Date time = dateFormat.parse(v[v.length - 2]);
@@ -1705,7 +1755,7 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
                 case "RTL":
                 case "DOG":
                 case "STR":
-                    result = decodeFri(channel, remoteAddress, sentence);
+                    result = decodeFri(channel, remoteAddress, sentence, values);
                     break;
                 case "ERI":
                     result = decodeEri(channel, remoteAddress, values);
