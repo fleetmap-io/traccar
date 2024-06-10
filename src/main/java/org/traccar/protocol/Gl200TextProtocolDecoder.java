@@ -1140,6 +1140,7 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
         Parser parser = new Parser(PATTERN_IGN, sentence);
         Position position = initPosition(parser, channel, remoteAddress);
         if (position == null) {
+            LOGGER.error("ignoring " + sentence);
             return null;
         }
 
