@@ -517,7 +517,7 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
     private Object decodeCan(Channel channel, SocketAddress remoteAddress, String[] v) throws ParseException {
         int index = 0;
         index += 1; // header
-        index += 1; // protocol version
+        String protocolVersion = v[index++]; // protocol version
         DeviceSession deviceSession = getDeviceSession(channel, remoteAddress, v[index++]);
         if (deviceSession == null) {
             return null;
@@ -526,7 +526,8 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
         Position position = new Position(getProtocolName());
         position.setDeviceId(deviceSession.getDeviceId());
 
-        String model = getDeviceModel(deviceSession, v[index++]);
+        String model = getDeviceModel(deviceSession, protocolVersion);
+        index += 1; // device name
         index += 1; // report type
         index += 1; // can bus state
         long reportMask = Long.parseLong(v[index++], 16);
@@ -970,13 +971,14 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
     private Object decodeEri(Channel channel, SocketAddress remoteAddress, String[] v) throws ParseException {
         int index = 0;
         index += 1; // header
-        index += 1; // protocol version
+        String protocolVersion = v[index++]; // protocol version
         DeviceSession deviceSession = getDeviceSession(channel, remoteAddress, v[index++]);
         if (deviceSession == null) {
             return null;
         }
 
-        String model = getDeviceModel(deviceSession, v[index++]);
+        String model = getDeviceModel(deviceSession, protocolVersion);
+        index += 1; // device name
         long mask = Long.parseLong(v[index++], 16);
         Double power = v[index++].isEmpty() ? null : Integer.parseInt(v[index - 1]) * 0.001;
         index += 1; // report type
@@ -1000,6 +1002,9 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
         }
         if (model.startsWith("GV") && !model.startsWith("GV6")) {
             position.set(Position.PREFIX_ADC + 2, v[index++].isEmpty() ? null : Integer.parseInt(v[index - 1]) * 0.001);
+        }
+        if (model.startsWith("GV355CEU")) {
+            index += 1; // reserved
         }
 
         position.set(Position.KEY_BATTERY_LEVEL, v[index++].isEmpty() ? null : Integer.parseInt(v[index - 1]));
@@ -1060,14 +1065,14 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
     private Object decodeFri(Channel channel, SocketAddress remoteAddress, String[] v) throws ParseException {
         int index = 0;
         index += 1; // header
-        index += 1; // protocol version
+        String protocolVersion = v[index++]; // protocol version
         DeviceSession deviceSession = getDeviceSession(channel, remoteAddress, v[index++]);
         if (deviceSession == null) {
             return null;
         }
 
-        String model = getDeviceModel(deviceSession, v[index++]);
-        long mask = Long.parseLong(v[index++], 16);
+        String model = getDeviceModel(deviceSession, protocolVersion);
+        index += 1; // device name
         Double power = v[index++].isEmpty() ? null : Integer.parseInt(v[index - 1]) * 0.001;
         index += 1; // report type
 
