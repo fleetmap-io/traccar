@@ -24,6 +24,11 @@ public final class BitUtil {
         return (number & (1 << index)) != 0;
     }
 
+    public static boolean checkReversed(long number, int _index) {
+        int index = 31 - _index;
+        return (number & (1 << index)) != 0;
+    }
+
     public static int between(int number, int from, int to) {
         return (number >> from) & ((1 << to - from) - 1);
     }

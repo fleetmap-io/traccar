@@ -114,38 +114,38 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     }
 
     private String decodeAlarm(long value) {
-        if (BitUtil.check(value, 0)) {
+        if (BitUtil.checkReversed(value, 0)) {
             return Position.ALARM_SOS;
         }
-        if (BitUtil.check(value, 1)) {
+        if (BitUtil.checkReversed(value, 1)) {
             return Position.ALARM_OVERSPEED;
         }
-        if (BitUtil.check(value, 5)) {
+        if (BitUtil.checkReversed(value, 5)) {
             return Position.ALARM_GPS_ANTENNA_CUT;
         }
-        if (BitUtil.check(value, 4) || BitUtil.check(value, 9)
-                || BitUtil.check(value, 10) || BitUtil.check(value, 11)) {
+        if (BitUtil.checkReversed(value, 4) || BitUtil.checkReversed(value, 9)
+                || BitUtil.checkReversed(value, 10) || BitUtil.checkReversed(value, 11)) {
             return Position.ALARM_FAULT;
         }
-        if (BitUtil.check(value, 7) || BitUtil.check(value, 18)) {
+        if (BitUtil.checkReversed(value, 7) || BitUtil.checkReversed(value, 18)) {
             return Position.ALARM_LOW_BATTERY;
         }
-        if (BitUtil.check(value, 8)) {
+        if (BitUtil.checkReversed(value, 8)) {
             return Position.ALARM_POWER_OFF;
         }
-        if (BitUtil.check(value, 15)) {
+        if (BitUtil.checkReversed(value, 15)) {
             return Position.ALARM_VIBRATION;
         }
-        if (BitUtil.check(value, 16) || BitUtil.check(value, 17)) {
+        if (BitUtil.checkReversed(value, 16) || BitUtil.checkReversed(value, 17)) {
             return Position.ALARM_TAMPERING;
         }
-        if (BitUtil.check(value, 20)) {
+        if (BitUtil.checkReversed(value, 20)) {
             return Position.ALARM_GEOFENCE;
         }
-        if (BitUtil.check(value, 28)) {
+        if (BitUtil.checkReversed(value, 28)) {
             return Position.ALARM_MOVEMENT;
         }
-        if (BitUtil.check(value, 29) || BitUtil.check(value, 30)) {
+        if (BitUtil.checkReversed(value, 29) || BitUtil.checkReversed(value, 30)) {
             return Position.ALARM_ACCIDENT;
         }
         return null;
