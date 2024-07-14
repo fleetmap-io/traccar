@@ -858,21 +858,28 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
             .text("$").optional()
             .compile();
 
-    private Object decodeFri(Channel channel, SocketAddress remoteAddress, String sentence) {
+    private Object decodeFri(Channel channel, SocketAddress remoteAddress, String sentence, String[] v) {
         Parser parser = new Parser(PATTERN_FRI, sentence);
         if (!parser.matches()) {
             return null;
         }
 
-        DeviceSession deviceSession = getDeviceSession(channel, remoteAddress, parser.next());
+        int index = 0;
+        index += 1; // header
+        String protocolVersion = v[index++]; // protocol version
+        DeviceSession deviceSession = getDeviceSession(channel, remoteAddress, v[index++]);
         if (deviceSession == null) {
             return null;
         }
-
+        String model = getDeviceModel(deviceSession, protocolVersion);
+        index += 1; // device name
         LinkedList<Position> positions = new LinkedList<>();
 
         String vin = parser.next();
         Integer power = parser.nextInt();
+        if (model.equals("GV310LAU") || model.equals("GV355CEU")) {
+            power = Integer.parseInt(v[index++]);
+        }
         Integer reportType = parser.nextInt();
         Integer battery = parser.nextInt();
 
@@ -1675,7 +1682,7 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
                 case "RTL":
                 case "DOG":
                 case "STR":
-                    result = decodeFri(channel, remoteAddress, sentence);
+                    result = decodeFri(channel, remoteAddress, sentence, values);
                     break;
                 case "ERI":
                     result = decodeEri(channel, remoteAddress, values);
