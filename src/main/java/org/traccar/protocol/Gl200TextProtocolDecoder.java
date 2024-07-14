@@ -864,6 +864,8 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
             return null;
         }
 
+        parser.next(); //
+
         int index = 0;
         index += 1; // header
         String protocolVersion = v[index++]; // protocol version
