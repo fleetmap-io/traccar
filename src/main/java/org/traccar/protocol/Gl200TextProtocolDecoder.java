@@ -863,8 +863,7 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
         if (!parser.matches()) {
             return null;
         }
-
-        parser.next(); //
+        parser.next(); // imei
 
         int index = 0;
         index += 1; // header
