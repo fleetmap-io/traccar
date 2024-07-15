@@ -213,7 +213,7 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
 
     private Object decodeInf(Channel channel, SocketAddress remoteAddress, String sentence) {
         Parser parser = new Parser(PATTERN_INF, sentence);
-        LOGGER.error(sentence);
+        //LOGGER.error(sentence);
         if (!parser.matches()) {
             return null;
         }
@@ -863,7 +863,7 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
         if (!parser.matches()) {
             return null;
         }
-        LOGGER.error(sentence);
+        // LOGGER.error(sentence);
         parser.next(); // imei
 
         int index = 0;
@@ -879,8 +879,8 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
 
         String vin = parser.next();
         Integer power = parser.nextInt();
-        if (model.equals("GV310LAU") || model.equals("GV355CEU")) {
-            power = Integer.parseInt(v[index++]);
+        if (!v[index++].isEmpty() && (model.equals("GV310LAU") || model.equals("GV355CEU"))) {
+            power = Integer.parseInt(v[index-1]);
         }
         Integer reportType = parser.nextInt();
         Integer battery = parser.nextInt();
@@ -1488,7 +1488,7 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
             .compile();
 
     private Object decodeOther(Channel channel, SocketAddress remoteAddress, String sentence, String type) {
-        LOGGER.error("gl200 {}", sentence);
+        // LOGGER.error("gl200 {}", sentence);
         Parser parser = new Parser(PATTERN, sentence);
         Position position = initPosition(parser, channel, remoteAddress);
         if (position == null) {
@@ -1748,7 +1748,7 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
                     }
                 }
             } else {
-                LOGGER.error("ignoring: " + sentence);
+                // LOGGER.error("ignoring: " + sentence);
             }
         }
 
