@@ -57,6 +57,11 @@ public class TaipProtocolDecoder extends BaseProtocolDecoder {
             .number("(dd)?")                     // event
             .number("(dd)(dd)(dd)")              // date (mmddyy)
             .number("(dd)(dd)(dd)")              // time (hhmmss)
+            .or() //RUS01,M1,$GIZQ|4.9,
+            .expression("(RUS01,M1,\\$)(GIZQ|GDER)\\|(d+.d+),")   // type
+            .number("(dd)?")                     // event
+            .number("(dd)(dd)(dd)")              // date (mmddyy)
+            .number("(dd)(dd)(dd)")              // time (hhmmss)
             .groupEnd()
             .groupBegin()
             .number("([-+]dd)(d{5})")            // latitude
