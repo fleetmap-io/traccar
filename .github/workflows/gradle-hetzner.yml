@@ -13,7 +13,7 @@ jobs:
       uses: easingthemes/ssh-deploy@main
       with:
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        SOURCE: "./setup/amazon-cloudwatch-agent.json"
+        SOURCE: "./setup/cloudwatch"
         REMOTE_HOST: ${{ vars.REMOTE_HOST }}
         REMOTE_USER: ${{ secrets.REMOTE_USER }}
         TARGET: "/root"
@@ -21,7 +21,7 @@ jobs:
           wget https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
           sudo dpkg -i -E ./amazon-cloudwatch-agent.deb
           rm ./amazon-cloudwatch-agent.deb
-          cp -v amazon-cloudwatch-agent.json /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+          cp -v amazon-cloudwatch-agent.json countFD.sh /opt/aws/amazon-cloudwatch-agent/etc
           mkdir -p ~/.aws
           sudo tee ~/.aws/credentials > /dev/null <<EOF
           [AmazonCloudWatchAgent]
