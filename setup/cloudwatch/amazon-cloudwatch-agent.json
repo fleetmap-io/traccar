@@ -1,10 +1,20 @@
 {
   "metrics": {
     "metrics_collected": {
+      "exec": {
+        "measurement": [
+          {
+            "name": "OpenFileDescriptors",
+            "unit": "Count"
+          }
+        ],
+        "command": "/opt/aws/amazon-cloudwatch-agent/etc/countFD.sh",
+        "interval": 60
+      },
       "cpu": {
         "resources": ["*"],
         "measurement": ["cpu_usage_guest", "cpu_usage_nice", "cpu_usage_idle"],
-        "totalcpu": false
+        "totalcpu": true
       },
       "disk": {
         "resources": ["/", "/tmp"],
@@ -22,7 +32,7 @@
         "measurement": ["bytes_sent", "bytes_recv", "drop_in", "drop_out"]
       },
       "netstat": {
-        "measurement": ["tcp_established", "tcp_syn_sent", "tcp_close"]
+        "measurement": ["tcp_established"]
       },
       "processes": {
         "measurement": ["running", "sleeping", "dead"]
