@@ -17,7 +17,6 @@
 package org.traccar.api;
 
 import java.sql.SQLException;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -30,6 +29,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Response;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.traccar.Context;
 import org.traccar.database.BaseObjectManager;
 import org.traccar.database.ExtendedObjectManager;
@@ -46,6 +47,8 @@ import org.traccar.model.ScheduledModel;
 import org.traccar.model.User;
 
 public abstract class BaseObjectResource<T extends BaseModel> extends BaseResource {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BaseObjectResource.class);
 
     private Class<T> baseClass;
 
@@ -158,7 +161,7 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
             }
             return Response.ok().build();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("add", e);
             throw e;
         }
     }
