@@ -37,13 +37,13 @@ public class GeofenceManager extends ExtendedObjectManager<Geofence> {
 
     public List<Long> getCurrentDeviceGeofences(Position position) {
         List<Long> result = new ArrayList<>();
-        for (long geofenceId : getAllDeviceItems(position.getDeviceId())) {
+        /*for (long geofenceId : getAllDeviceItems(position.getDeviceId())) {
             Geofence geofence = getById(geofenceId);
             if (geofence != null && geofence.getGeometry()
                     .containsPoint(position.getLatitude(), position.getLongitude())) {
                 result.add(geofenceId);
             }
-        }
+        }*/
         return result;
     }
 
