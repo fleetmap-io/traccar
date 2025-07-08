@@ -124,38 +124,43 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
     @Path("multiple")
     @POST
     public Response add(List<T> entities) throws SQLException {
-        if (entities.size() > 0) {
-            Object entity = entities.get(0);
-            Context.getPermissionsManager().checkReadonly(getUserId());
-            if (baseClass.equals(Device.class)) {
-                Context.getPermissionsManager().checkDeviceReadonly(getUserId());
-                Context.getPermissionsManager().checkDeviceLimit(getUserId());
-            } else if (baseClass.equals(Command.class)) {
-                Context.getPermissionsManager().checkLimitCommands(getUserId());
-            } else if (entity instanceof GroupedModel && ((GroupedModel) entity).getGroupId() != 0) {
-                Context.getPermissionsManager().checkPermission(
-                        Group.class, getUserId(), ((GroupedModel) entity).getGroupId());
-            } else if (entity instanceof ScheduledModel && ((ScheduledModel) entity).getCalendarId() != 0) {
-                Context.getPermissionsManager().checkPermission(
-                        Calendar.class, getUserId(), ((ScheduledModel) entity).getCalendarId());
+        try {
+            if (entities.size() > 0) {
+                Object entity = entities.get(0);
+                Context.getPermissionsManager().checkReadonly(getUserId());
+                if (baseClass.equals(Device.class)) {
+                    Context.getPermissionsManager().checkDeviceReadonly(getUserId());
+                    Context.getPermissionsManager().checkDeviceLimit(getUserId());
+                } else if (baseClass.equals(Command.class)) {
+                    Context.getPermissionsManager().checkLimitCommands(getUserId());
+                } else if (entity instanceof GroupedModel && ((GroupedModel) entity).getGroupId() != 0) {
+                    Context.getPermissionsManager().checkPermission(
+                            Group.class, getUserId(), ((GroupedModel) entity).getGroupId());
+                } else if (entity instanceof ScheduledModel && ((ScheduledModel) entity).getCalendarId() != 0) {
+                    Context.getPermissionsManager().checkPermission(
+                            Calendar.class, getUserId(), ((ScheduledModel) entity).getCalendarId());
+                }
             }
-        }
-        BaseObjectManager<T> manager = Context.getManager(baseClass);
-        for (T entity: entities){
-            manager.addItem(entity);
-            LogAction.create(getUserId(), entity);
-        }
-        Context.getDataManager().linkObjects(User.class, getUserId(), baseClass,
-                entities.stream().map(e -> e.getId()).collect(Collectors.toList()), true);
+            BaseObjectManager<T> manager = Context.getManager(baseClass);
+            for (T entity : entities) {
+                manager.addItem(entity);
+                LogAction.create(getUserId(), entity);
+            }
+            Context.getDataManager().linkObjects(User.class, getUserId(), baseClass,
+                    entities.stream().map(e -> e.getId()).collect(Collectors.toList()), true);
 
 
-        if (manager instanceof SimpleObjectManager) {
-            ((SimpleObjectManager<T>) manager).refreshUserItems();
-        } else if (baseClass.equals(Group.class) || baseClass.equals(Device.class)) {
-            Context.getPermissionsManager().refreshDeviceAndGroupPermissions();
-            Context.getPermissionsManager().refreshAllExtendedPermissions();
+            if (manager instanceof SimpleObjectManager) {
+                ((SimpleObjectManager<T>) manager).refreshUserItems();
+            } else if (baseClass.equals(Group.class) || baseClass.equals(Device.class)) {
+                Context.getPermissionsManager().refreshDeviceAndGroupPermissions();
+                Context.getPermissionsManager().refreshAllExtendedPermissions();
+            }
+            return Response.ok().build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
         }
-        return Response.ok().build();
     }
 
 
