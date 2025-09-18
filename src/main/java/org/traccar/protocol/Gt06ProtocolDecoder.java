@@ -24,6 +24,7 @@ import org.traccar.Context;
 import org.traccar.DeviceSession;
 import org.traccar.NetworkMessage;
 import org.traccar.Protocol;
+import org.traccar.database.DeviceManager;
 import org.traccar.helper.BcdUtil;
 import org.traccar.helper.BitUtil;
 import org.traccar.helper.Checksum;
@@ -90,6 +91,7 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_INFO = 0x94;
     public static final int MSG_SERIAL = 0x9B;
     public static final int MSG_STRING_INFO = 0x21;
+    public static final int MSG_X3TECH_GPS = 0x22;
     public static final int MSG_GPS_2 = 0xA0;
     public static final int MSG_LBS_2 = 0xA1;
     public static final int MSG_WIFI_3 = 0xA2;
@@ -418,6 +420,7 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
         int length = buf.readUnsignedByte();
         int dataLength = length - 5;
         int type = buf.readUnsignedByte();
+        int deviceType = 0;
 
         DeviceSession deviceSession = null;
         if (type != MSG_LOGIN) {
@@ -428,6 +431,7 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
             if (deviceSession.getTimeZone() == null) {
                 deviceSession.setTimeZone(getTimeZone(deviceSession.getDeviceId()));
             }
+            deviceType = Context.getIdentityManager().getById(deviceSession.getDeviceId()).getInteger("deviceType");
         }
 
         if (type == MSG_LOGIN) {
@@ -525,6 +529,29 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
 
             return position;
 
+        } else if (type == MSG_X3TECH_GPS && deviceType==45) {
+
+            DeviceManager dm = Context.getDeviceManager();
+            // .getById(deviceSession.getDeviceId()).getInteger("deviceType") == 45
+
+            Position position = new Position(getProtocolName());
+            position.setDeviceId(deviceSession.getDeviceId());
+            position.set(Position.KEY_SOURCE, buf.readUnsignedByte());
+            buf.skipBytes(8); //imei
+            ByteBuf time = buf.readSlice(6);
+            DateBuilder dateBuilder = new DateBuilder()
+                    .setYear(BcdUtil.readInteger(time, 2))
+                    .setMonth(BcdUtil.readInteger(time, 2))
+                    .setDay(BcdUtil.readInteger(time, 2))
+                    .setHour(BcdUtil.readInteger(time, 2))
+                    .setMinute(BcdUtil.readInteger(time, 2))
+                    .setSecond(BcdUtil.readInteger(time, 2));
+            position.setDeviceTime(dateBuilder.getDate());
+            decodeGps(position, buf, false, deviceSession.getTimeZone());
+
+            // decodeLbs(position, buf, true);
+            // decodeStatus(position, buf);
+            return position;
         } else {
 
             return decodeBasicOther(channel, buf, deviceSession, type, dataLength);
