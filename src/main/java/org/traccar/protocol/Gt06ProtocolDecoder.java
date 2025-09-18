@@ -645,6 +645,7 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
             Channel channel, ByteBuf buf, DeviceSession deviceSession, int type, int dataLength) {
 
         Position position = new Position(getProtocolName());
+        position.set(Position.KEY_TYPE, type);
         position.setDeviceId(deviceSession.getDeviceId());
 
         if (type == MSG_LBS_MULTIPLE || type == MSG_LBS_EXTEND || type == MSG_LBS_WIFI
