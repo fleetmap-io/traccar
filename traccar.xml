@@ -103,6 +103,7 @@
   <entry key='calamp.port'>5082</entry>
   <entry key='upro.port'>5095</entry>
   <entry key='rst.port'>5196</entry>
+  <entry key='pst.port'>5207</entry>
   <entry key='mobilogix.port'>5216</entry>
   <entry key='startek.port'>5222</entry>
   <entry key='dualcam.port'>5232</entry>
