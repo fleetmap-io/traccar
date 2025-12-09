@@ -149,6 +149,9 @@ public class Position extends Message {
     public static final String ALARM_TAMPERING = "tampering";
     public static final String ALARM_REMOVING = "removing";
     public static final String KEY_SOURCE = "source";
+    public static final String KEY_HUMIDITY = "humidity";
+    public static final String KEY_FUEL = "fuel";
+
 
     public Position() {
     }
