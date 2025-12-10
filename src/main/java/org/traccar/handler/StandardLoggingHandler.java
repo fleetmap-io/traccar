@@ -81,7 +81,7 @@ public class StandardLoggingHandler extends ChannelDuplexHandler {
         message.append(" HEX: ");
         message.append(ByteBufUtil.hexDump(buf));
 
-        if (protocol.equals("h02") || protocol.equals("pst")) {
+        if (protocol.equals("h02") || protocol.equals("pst") || protocol.equals("h03") || protocol.equals("gt06")) {
             LOGGER.error(message.toString());
         } else {
             LOGGER.info(message.toString());
