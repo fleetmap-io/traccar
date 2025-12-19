@@ -46,7 +46,6 @@ import java.util.regex.Pattern;
 
 public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(Gt06ProtocolDecoder.class);
     private final Map<Integer, ByteBuf> photos = new HashMap<>();
 
     public Gt06ProtocolDecoder(Protocol protocol) {
@@ -579,7 +578,10 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
 
             buf.readUnsignedShort(); // terminal info
 
-            position.set(Position.KEY_ODOMETER, buf.readUnsignedInt());
+            long odometer = buf.readUnsignedInt();
+            position.set(Position.KEY_ODOMETER, odometer);
+            position.set("debugOdometer1", odometer);
+
 
             position.setNetwork(new Network(CellTower.from(
                     buf.readUnsignedShort(), buf.readUnsignedByte(),
@@ -839,7 +841,9 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
         }
 
         if (type == MSG_GPS_LBS_1 && buf.readableBytes() > 75 + 6) {
-            position.set(Position.KEY_ODOMETER, buf.readUnsignedInt());
+            long odometer = buf.readUnsignedInt();
+            position.set(Position.KEY_ODOMETER, odometer);
+            position.set("debugOdometer2", odometer);
             String data = buf.readCharSequence(buf.readUnsignedByte(), StandardCharsets.US_ASCII).toString();
             buf.readUnsignedByte(); // alarm
             buf.readUnsignedByte(); // swiped
@@ -880,7 +884,9 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
                     position.set(Position.KEY_POWER, buf.readUnsignedShort() * 0.01);
                     break;
                 case 0x002E:
-                    position.set(Position.KEY_ODOMETER, buf.readUnsignedInt());
+                    long odometer = buf.readUnsignedInt();
+                    position.set(Position.KEY_ODOMETER, odometer);
+                    position.set("debugOdometer3", odometer);
                     break;
                 case 0x003B:
                     position.setAccuracy(buf.readUnsignedShort() * 0.01);
@@ -892,7 +898,9 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
         }
 
         if (buf.readableBytes() == 4 + 6) {
-            position.set(Position.KEY_ODOMETER, buf.readUnsignedInt());
+            long odometer = buf.readUnsignedInt();
+            position.set(Position.KEY_ODOMETER, odometer);
+            position.set("debugOdometer4", odometer);
         }
     }
 
@@ -1042,7 +1050,9 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
                 String[] values = pair.split("=");
                 switch (Integer.parseInt(values[0].substring(0, 2), 16)) {
                     case 40:
-                        position.set(Position.KEY_ODOMETER, Integer.parseInt(values[1], 16) * 0.01);
+                        double odometer = Integer.parseInt(values[1], 16) * 0.01;
+                        position.set(Position.KEY_ODOMETER, odometer);
+                        position.set("debugOdometer5", odometer);
                         break;
                     case 43:
                         position.set(Position.KEY_FUEL_LEVEL, Integer.parseInt(values[1], 16) * 0.01);
@@ -1150,7 +1160,9 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
                     position.set(Position.KEY_EVENT, event);
                     break;
                 case 0x2e:
-                    position.set(Position.KEY_ODOMETER, buf.readUnsignedIntLE());
+                    long odometer = buf.readUnsignedIntLE();
+                    position.set(Position.KEY_ODOMETER, odometer);
+                    position.set("debugOdometer6", odometer);
                     break;
                 case 0x33:
                     position.setTime(new Date(buf.readUnsignedInt() * 1000));
