@@ -195,6 +195,7 @@ public class TeltonikaProtocolDecoder extends BaseProtocolDecoder {
 
     private void decodeOtherParameter(Position position, int id, ByteBuf buf, int length) {
         long value;
+        double doubleValue;
         switch (id) {
             case 1:
             case 2:
@@ -233,6 +234,7 @@ public class TeltonikaProtocolDecoder extends BaseProtocolDecoder {
             case 28:
                 value = readValue(buf, length, true);
                 if (value != 0) {
+                    position.set(id + Position.PREFIX_TEMP + (id - 24), value);
                     position.set(Position.PREFIX_TEMP + (id - 24), value);
                 }
                 break;
@@ -264,6 +266,7 @@ public class TeltonikaProtocolDecoder extends BaseProtocolDecoder {
             case 76:
                 value = readValue(buf, length, true);
                 if (value != 0) {
+                    position.set(id + Position.PREFIX_TEMP + (id - 71), value * 0.1);
                     position.set(Position.PREFIX_TEMP + (id - 71), value * 0.1);
                 }
                 break;
@@ -382,7 +385,9 @@ public class TeltonikaProtocolDecoder extends BaseProtocolDecoder {
             case 10801:
             case 10802:
             case 10803:
-                position.set(Position.PREFIX_TEMP + (id-10799), readValue(buf, length, true) * 0.01);
+                doubleValue = readValue(buf, length, true) * 0.01;
+                position.set(id + Position.PREFIX_TEMP + (id-10799), doubleValue);
+                position.set(Position.PREFIX_TEMP + (id-10799), doubleValue);
                 break;
             case 10804:
             case 10805:
