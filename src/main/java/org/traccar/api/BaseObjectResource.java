@@ -33,7 +33,6 @@ import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.traccar.Context;
-import org.traccar.api.resource.DeviceResource;
 import org.traccar.database.BaseObjectManager;
 import org.traccar.database.ExtendedObjectManager;
 import org.traccar.database.ManagableObjects;
@@ -50,8 +49,9 @@ import org.traccar.model.User;
 
 public abstract class BaseObjectResource<T extends BaseModel> extends BaseResource {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(BaseObjectResource.class);
+
     private Class<T> baseClass;
-    private static final Logger LOGGER = LoggerFactory.getLogger(DeviceResource.class);
 
     public BaseObjectResource(Class<T> baseClass) {
         this.baseClass = baseClass;
@@ -169,8 +169,13 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
         Context.getPermissionsManager().checkReadonly(getUserId());
         if (baseClass.equals(Device.class)) {
             Context.getPermissionsManager().checkDeviceReadonly(getUserId());
-            LOGGER.error("old device uniqueId  " + ((Device)Context.getManager(baseClass).getById(entity.getId())).getUniqueId());
-            LOGGER.error("new device uniqueId  " + ((Device)entity).getUniqueId());
+            Device oldDevice = (Device) Context.getManager(baseClass).getById(entity.getId());
+            Device newDevice = (Device) entity;
+            LOGGER.info("User {}, device id {}, attempting to change device uniqueId from '{}' to '{}'",
+                    getUserId(), entity.getId(), oldDevice.getUniqueId(), newDevice.getUniqueId());
+            if (!oldDevice.getUniqueId().equals(newDevice.getUniqueId())) {
+                Context.getPermissionsManager().checkAdmin(getUserId());
+            }
         } else if (baseClass.equals(User.class)) {
             User before = Context.getPermissionsManager().getUser(entity.getId());
             Context.getPermissionsManager().checkUserUpdate(getUserId(), before, (User) entity);
