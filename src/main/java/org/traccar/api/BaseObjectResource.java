@@ -30,7 +30,10 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Response;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.traccar.Context;
+import org.traccar.api.resource.DeviceResource;
 import org.traccar.database.BaseObjectManager;
 import org.traccar.database.ExtendedObjectManager;
 import org.traccar.database.ManagableObjects;
@@ -48,6 +51,7 @@ import org.traccar.model.User;
 public abstract class BaseObjectResource<T extends BaseModel> extends BaseResource {
 
     private Class<T> baseClass;
+    private static final Logger LOGGER = LoggerFactory.getLogger(DeviceResource.class);
 
     public BaseObjectResource(Class<T> baseClass) {
         this.baseClass = baseClass;
@@ -165,6 +169,8 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
         Context.getPermissionsManager().checkReadonly(getUserId());
         if (baseClass.equals(Device.class)) {
             Context.getPermissionsManager().checkDeviceReadonly(getUserId());
+            LOGGER.error("old device uniqueId  " + ((Device)Context.getManager(baseClass).getById(entity.getId())).getUniqueId());
+            LOGGER.error("new device uniqueId  " + ((Device)entity).getUniqueId());
         } else if (baseClass.equals(User.class)) {
             User before = Context.getPermissionsManager().getUser(entity.getId());
             Context.getPermissionsManager().checkUserUpdate(getUserId(), before, (User) entity);
@@ -178,6 +184,7 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
                     Calendar.class, getUserId(), ((ScheduledModel) entity).getCalendarId());
         }
         Context.getPermissionsManager().checkPermission(baseClass, getUserId(), entity.getId());
+
 
         Context.getManager(baseClass).updateItem(entity);
         LogAction.edit(getUserId(), entity);
