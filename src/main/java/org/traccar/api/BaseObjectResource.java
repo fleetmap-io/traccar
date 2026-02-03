@@ -171,9 +171,9 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
             Context.getPermissionsManager().checkDeviceReadonly(getUserId());
             Device oldDevice = (Device) Context.getManager(baseClass).getById(entity.getId());
             Device newDevice = (Device) entity;
-            LOGGER.error("User {}, device id {}, attempting to change device uniqueId from '{}' to '{}'",
-                    getUserId(), entity.getId(), oldDevice.getUniqueId(), newDevice.getUniqueId());
             if (!oldDevice.getUniqueId().equals(newDevice.getUniqueId())) {
+                LOGGER.error("User {}, device id {}, attempting to change device uniqueId from '{}' to '{}'",
+                        getUserId(), entity.getId(), oldDevice.getUniqueId(), newDevice.getUniqueId());
                 Context.getPermissionsManager().checkAdmin(getUserId());
             }
         } else if (baseClass.equals(User.class)) {
