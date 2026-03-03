@@ -44,7 +44,7 @@ public class EngineHoursHandler extends BaseDataHandler {
                 long stopTime = last.getLong(Position.KEY_STOP_TIME);
                 long diff = position.getFixTime().getTime() - last.getFixTime().getTime();
                 if (last.getBoolean(Position.KEY_IGNITION) && position.getBoolean(Position.KEY_IGNITION)) {
-                    if (diff > 0) {
+                    if (diff > 0 && diff < 5*60*1000) {
                         hours += diff;
                         tripTime += diff;
                     }
