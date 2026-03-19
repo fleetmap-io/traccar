@@ -71,6 +71,9 @@ public class DistanceHandler extends BaseDataHandler {
                     distance = 0;
                 }
             }
+            if (!last.getBoolean(Position.KEY_IGNITION) && !position.getBoolean(Position.KEY_IGNITION)) {
+                distance = 0;
+            }
         }
         position.set(Position.KEY_DISTANCE, distance);
         totalDistance = BigDecimal.valueOf(totalDistance + distance).setScale(2, RoundingMode.HALF_EVEN).doubleValue();
