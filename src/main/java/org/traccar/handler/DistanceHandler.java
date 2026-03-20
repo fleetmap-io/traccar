@@ -22,6 +22,7 @@ import org.traccar.config.Config;
 import org.traccar.config.Keys;
 import org.traccar.database.IdentityManager;
 import org.traccar.helper.DistanceCalculator;
+import org.traccar.model.Device;
 import org.traccar.model.Position;
 
 import java.math.BigDecimal;
@@ -70,6 +71,12 @@ public class DistanceHandler extends BaseDataHandler {
                     position.setLongitude(last.getLongitude());
                     distance = 0;
                 }
+            }
+            Device device = identityManager.getById(position.getDeviceId());
+            if (device.getAttributes().containsKey("noDistanceWithIgnitionOff")
+                    && !last.getBoolean(Position.KEY_IGNITION)
+                    && !position.getBoolean(Position.KEY_IGNITION)) {
+                distance = 0;
             }
         }
         position.set(Position.KEY_DISTANCE, distance);
