@@ -45,9 +45,13 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
 
             switch (command.getType()) {
                 case Command.TYPE_CUSTOM:
-                        data.writeCharSequence(command.getString(Command.KEY_DATA), StandardCharsets.US_ASCII);
-                        return HuabaoProtocolDecoder.formatMessage(
-                                0x7e, HuabaoProtocolDecoder.MSG_DOWNLINK_TRANSPARENT_TRANSMISSION, id, data);
+                    data.writeByte(1); // number of parameters
+                    data.writeInt(0xF030); // AT command transparent transmission
+                    int length = command.getString(Command.KEY_DATA).length();
+                    data.writeByte(length);
+                    data.writeCharSequence(command.getString(Command.KEY_DATA), StandardCharsets.US_ASCII);
+                    return HuabaoProtocolDecoder.formatMessage(
+                            0x7e, HuabaoProtocolDecoder.MSG_CONFIGURATION_PARAMETERS, id, false, data);
                 case Command.TYPE_ENGINE_STOP:
                     data.writeByte(0xf0);
                     return HuabaoProtocolDecoder.formatMessage(
