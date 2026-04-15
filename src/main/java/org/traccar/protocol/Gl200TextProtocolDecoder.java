@@ -1710,7 +1710,7 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
 
             Object result;
             String type = sentence.substring(typeIndex + 3, typeIndex + 6);
-            try {
+
                 if (sentence.startsWith("+ACK")) {
                     result = decodeAck(channel, remoteAddress, values);
                 } else {
@@ -1819,13 +1819,9 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
 
                 return result;
             } catch (Exception e) {
-                LOGGER.error("gl200", e);
+                LOGGER.error("gl200 error: " + e.getMessage() + " " + ((ByteBuf) msg).toString(StandardCharsets.US_ASCII), e);
                 return null;
             }
-        } catch (Exception e) {
-            LOGGER.error("gl200 error {} {}", msg, e.getMessage());
-            return null;
-        }
     }
 
     private Object decodeTrl(Channel channel, SocketAddress remoteAddress, String[] v) throws ParseException {
