@@ -73,6 +73,7 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
             Map.entry("55", "GL50B"),
             Map.entry("5E", "GV500MAP"),
             Map.entry("6E", "GV310LAU"),
+            Map.entry("74", "GV355CEU"),
             Map.entry("BD", "CV200"),
             Map.entry("C2", "GV600M"),
             Map.entry("DC", "GV600MG"),
@@ -81,8 +82,7 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
             Map.entry("F8", "GV800W"),
             Map.entry("FC", "GV600W"),
             Map.entry("802004", "GV58LAU"),
-            Map.entry("802005", "GV355CEU"),
-            Map.entry("740904", "GV355CEU"));
+            Map.entry("802005", "GV355CEU"));
 
     private final boolean ignoreFixTime;
 
