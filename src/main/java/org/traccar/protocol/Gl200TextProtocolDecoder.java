@@ -81,7 +81,8 @@ public class Gl200TextProtocolDecoder extends BaseProtocolDecoder {
             Map.entry("F8", "GV800W"),
             Map.entry("FC", "GV600W"),
             Map.entry("802004", "GV58LAU"),
-            Map.entry("802005", "GV355CEU"));
+            Map.entry("802005", "GV355CEU"),
+            Map.entry("740904", "GV355CEU"));
 
     private final boolean ignoreFixTime;
 
