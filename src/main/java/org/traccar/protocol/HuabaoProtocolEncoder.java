@@ -16,13 +16,18 @@
 package org.traccar.protocol;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.traccar.BaseProtocolEncoder;
 import org.traccar.Protocol;
 import org.traccar.helper.DataConverter;
 import org.traccar.model.Command;
 
 public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(HuabaoProtocolEncoder.class);
 
     public HuabaoProtocolEncoder(Protocol protocol) {
         super(protocol);
@@ -35,20 +40,27 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                 DataConverter.parseHex(getUniqueId(command.getDeviceId())));
         try {
             ByteBuf data = Unpooled.buffer();
+            ByteBuf result;
             switch (command.getType()) {
                 case Command.TYPE_CUSTOM:
-                    return Unpooled.wrappedBuffer(DataConverter.parseHex(command.getString(Command.KEY_DATA)));
+                    result = Unpooled.wrappedBuffer(DataConverter.parseHex(command.getString(Command.KEY_DATA)));
+                    break;
                 case Command.TYPE_ENGINE_STOP:
                     data.writeByte(0xf0);
-                    return HuabaoProtocolDecoder.formatMessage(
+                    result = HuabaoProtocolDecoder.formatMessage(
                             HuabaoProtocolDecoder.MSG_TERMINAL_CONTROL, id, false, data);
+                    break;
                 case Command.TYPE_ENGINE_RESUME:
                     data.writeByte(0xf1);
-                    return HuabaoProtocolDecoder.formatMessage(
+                    result = HuabaoProtocolDecoder.formatMessage(
                             HuabaoProtocolDecoder.MSG_TERMINAL_CONTROL, id, false, data);
+                    break;
                 default:
                     return null;
             }
+            LOGGER.info("[{}] command {}: {}",
+                    command.getDeviceId(), command.getType(), ByteBufUtil.hexDump(result));
+            return result;
         } finally {
             id.release();
         }
