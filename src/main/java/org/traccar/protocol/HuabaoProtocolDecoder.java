@@ -19,8 +19,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.traccar.BaseProtocolDecoder;
 import org.traccar.DeviceSession;
 import org.traccar.NetworkMessage;
@@ -56,7 +54,6 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_HEARTBEAT_2 = 0x0506;
     public static final int MSG_TERMINAL_REGISTER = 0x0100;
     public static final int MSG_TERMINAL_REGISTER_RESPONSE = 0x8100;
-    public static final int MSG_TERMINAL_CONTROL = 0x8105;
     public static final int MSG_TERMINAL_AUTH = 0x0102;
     public static final int MSG_LOCATION_REPORT = 0x0200;
     public static final int MSG_LOCATION_BATCH_2 = 0x0210;
@@ -71,39 +68,6 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
     public static final int RESULT_SUCCESS = 0;
 
-    public static ByteBuf formatMessage(int delimiter, int type, ByteBuf id, boolean shortIndex, ByteBuf data) {
-        ByteBuf buf = Unpooled.buffer();
-        buf.writeByte(delimiter);
-        buf.writeShort(type);
-        buf.writeShort(data.readableBytes());
-        buf.writeBytes(id);
-        if (shortIndex) {
-            buf.writeByte(1);
-        } else {
-            buf.writeShort(0);
-        }
-        buf.writeBytes(data);
-        data.release();
-        buf.writeByte(Checksum.xor(buf.nioBuffer(1, buf.readableBytes() - 1)));
-        buf.writeByte(delimiter);
-        return buf;
-    }
-
-
-    public static ByteBuf formatMessage(int delimiter, int type, ByteBuf id, ByteBuf data) {
-        ByteBuf buf = Unpooled.buffer();
-        buf.writeByte(delimiter);
-        buf.writeShort(type);
-        buf.writeShort(data.readableBytes());
-        buf.writeBytes(id);
-        buf.writeShort(1);
-        buf.writeByte(0x40);
-        buf.writeBytes(data);
-        data.release();
-        buf.writeByte(Checksum.xor(buf.nioBuffer(1, buf.readableBytes() - 1)));
-        buf.writeByte(delimiter);
-        return buf;
-    }
     public static ByteBuf formatMessage(int type, ByteBuf id, boolean shortIndex, ByteBuf data) {
         ByteBuf buf = Unpooled.buffer();
         buf.writeByte(0x7e);
