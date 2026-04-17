@@ -61,9 +61,12 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
             LOGGER.error("[{}] command {}: {}",
                     command.getDeviceId(), command.getType(), ByteBufUtil.hexDump(result));
             return result;
-        } finally {
+        } catch (Exception e) {
+            LOGGER.error("Error encoding command", e);
+            return null;
+        }
+        finally {
             id.release();
         }
     }
-
 }
