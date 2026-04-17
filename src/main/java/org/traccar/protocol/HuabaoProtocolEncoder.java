@@ -58,7 +58,7 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                 default:
                     return null;
             }
-            LOGGER.info("[{}] command {}: {}",
+            LOGGER.warn("[{}] command {}: {}",
                     command.getDeviceId(), command.getType(), ByteBufUtil.hexDump(result));
             return result;
         } finally {
