@@ -15,6 +15,8 @@
  */
 package org.traccar;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
@@ -70,7 +72,11 @@ public abstract class BaseProtocolEncoder extends ChannelOutboundHandlerAdapter 
             } else {
                 s.append("not sent");
             }
-            LOGGER.info(s.toString());
+            if ("huabao".equals(getProtocolName())) {
+                LOGGER.error(s.toString());
+            } else {
+                LOGGER.info(s.toString());
+            }
 
             ctx.write(new NetworkMessage(encodedCommand, networkMessage.getRemoteAddress()), promise);
 

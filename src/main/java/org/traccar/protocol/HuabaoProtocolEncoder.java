@@ -19,13 +19,10 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.traccar.BaseProtocolEncoder;
 import org.traccar.Protocol;
-import org.traccar.config.Keys;
 import org.traccar.helper.DataConverter;
 import org.traccar.model.Command;
 
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
 
@@ -33,33 +30,24 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
         super(protocol);
     }
 
+    private ByteBuf encodeTransparent(ByteBuf id, String payload) {
+        ByteBuf data = Unpooled.buffer();
+        data.writeByte(0x40);
+        data.writeBytes(payload.getBytes(StandardCharsets.US_ASCII));
+        return HuabaoProtocolDecoder.formatMessage(
+                HuabaoProtocolDecoder.MSG_TRANSPARENT_DOWNLINK, id, false, data);
+    }
+
     @Override
     protected Object encodeCommand(Command command) {
-
-
         ByteBuf id = Unpooled.wrappedBuffer(
                 DataConverter.parseHex(getUniqueId(command.getDeviceId())));
         try {
-            ByteBuf data = Unpooled.buffer();
-            byte[] time = DataConverter.parseHex(new SimpleDateFormat("yyMMddHHmmss").format(new Date()));
-
             switch (command.getType()) {
-                case Command.TYPE_CUSTOM:
-                    data.writeByte(1); // number of parameters
-                    data.writeInt(0xF030); // AT command transparent transmission
-                    int length = command.getString(Command.KEY_DATA).length();
-                    data.writeByte(length);
-                    data.writeCharSequence(command.getString(Command.KEY_DATA), StandardCharsets.US_ASCII);
-                    return HuabaoProtocolDecoder.formatMessage(
-                            0x7e, HuabaoProtocolDecoder.MSG_CONFIGURATION_PARAMETERS, id, false, data);
                 case Command.TYPE_ENGINE_STOP:
-                    data.writeByte(0xf0);
-                    return HuabaoProtocolDecoder.formatMessage(
-                            HuabaoProtocolDecoder.MSG_TERMINAL_CONTROL, id, false, data);
+                    return encodeTransparent(id, "AS01BLO1");
                 case Command.TYPE_ENGINE_RESUME:
-                    data.writeByte(0xf1);
-                    return HuabaoProtocolDecoder.formatMessage(
-                            HuabaoProtocolDecoder.MSG_TERMINAL_CONTROL, id, false, data);
+                    return encodeTransparent(id, "AS01BLO0");
                 default:
                     return null;
             }
