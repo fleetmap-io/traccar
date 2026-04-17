@@ -54,7 +54,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
     private void sendResponse(Channel channel, SocketAddress remoteAddress, ByteBuf response) {
         if (channel != null) {
-            LOGGER.info("[{}] sent: {}", remoteAddress, ByteBufUtil.hexDump(response));
+            LOGGER.warn("[{}] sent: {}", remoteAddress, ByteBufUtil.hexDump(response));
             channel.writeAndFlush(new NetworkMessage(response, remoteAddress));
         } else {
             response.release();
@@ -188,7 +188,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
         ByteBuf buf = (ByteBuf) msg;
 
-        LOGGER.info("[{}] received: {}", remoteAddress, ByteBufUtil.hexDump(buf, buf.readerIndex(), buf.readableBytes()));
+        LOGGER.warn("[{}] received: {}", remoteAddress, ByteBufUtil.hexDump(buf, buf.readerIndex(), buf.readableBytes()));
 
         if (buf.getByte(buf.readerIndex()) == '(') {
             String sentence = buf.toString(StandardCharsets.US_ASCII);
