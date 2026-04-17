@@ -22,7 +22,10 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.traccar.Context;
 import org.traccar.NetworkMessage;
+import org.traccar.config.Config;
+import org.traccar.config.Keys;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -36,6 +39,8 @@ public class StandardLoggingHandler extends ChannelDuplexHandler {
     public StandardLoggingHandler(String protocol) {
         this.protocol = protocol;
     }
+
+    private final Config config = Context.getConfig();
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -81,7 +86,7 @@ public class StandardLoggingHandler extends ChannelDuplexHandler {
         message.append(" HEX: ");
         message.append(ByteBufUtil.hexDump(buf));
 
-        if ("huabao".equals(protocol)) {
+        if (config.getString(Keys.LOG_PROTOCOL, "").equals(protocol)) {
             LOGGER.error(message.toString());
         } else {
             LOGGER.info(message.toString());
