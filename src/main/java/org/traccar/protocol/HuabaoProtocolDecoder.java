@@ -19,6 +19,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.traccar.BaseProtocolDecoder;
 import org.traccar.DeviceSession;
 import org.traccar.NetworkMessage;
@@ -44,8 +46,19 @@ import java.util.TimeZone;
 
 public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(HuabaoProtocolDecoder.class);
+
     public HuabaoProtocolDecoder(Protocol protocol) {
         super(protocol);
+    }
+
+    private void sendResponse(Channel channel, SocketAddress remoteAddress, ByteBuf response) {
+        if (channel != null) {
+            LOGGER.info("[{}] sent: {}", remoteAddress, ByteBufUtil.hexDump(response));
+            channel.writeAndFlush(new NetworkMessage(response, remoteAddress));
+        } else {
+            response.release();
+        }
     }
 
     public static final int MSG_GENERAL_RESPONSE = 0x8001;
@@ -93,8 +106,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             response.writeShort(index);
             response.writeShort(type);
             response.writeByte(RESULT_SUCCESS);
-            channel.writeAndFlush(new NetworkMessage(
-                    formatMessage(MSG_GENERAL_RESPONSE, id, false, response), remoteAddress));
+            sendResponse(channel, remoteAddress, formatMessage(MSG_GENERAL_RESPONSE, id, false, response));
         }
     }
 
@@ -104,8 +116,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             ByteBuf response = Unpooled.buffer();
             response.writeShort(type);
             response.writeByte(RESULT_SUCCESS);
-            channel.writeAndFlush(new NetworkMessage(
-                    formatMessage(MSG_GENERAL_RESPONSE_2, id, true, response), remoteAddress));
+            sendResponse(channel, remoteAddress, formatMessage(MSG_GENERAL_RESPONSE_2, id, true, response));
         }
     }
 
@@ -177,16 +188,15 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
         ByteBuf buf = (ByteBuf) msg;
 
+        LOGGER.info("[{}] received: {}", remoteAddress, ByteBufUtil.hexDump(buf, buf.readerIndex(), buf.readableBytes()));
+
         if (buf.getByte(buf.readerIndex()) == '(') {
             String sentence = buf.toString(StandardCharsets.US_ASCII);
             if (sentence.contains("BASE,2")) {
                 DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
                 dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
                 String response = sentence.replace("TIME", dateFormat.format(new Date()));
-                if (channel != null) {
-                    channel.writeAndFlush(new NetworkMessage(
-                            Unpooled.copiedBuffer(response, StandardCharsets.US_ASCII), remoteAddress));
-                }
+                sendResponse(channel, remoteAddress, Unpooled.copiedBuffer(response, StandardCharsets.US_ASCII));
                 return null;
             } else {
                 return decodeResult(channel, remoteAddress, sentence);
@@ -220,8 +230,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                 response.writeShort(index);
                 response.writeByte(RESULT_SUCCESS);
                 response.writeBytes(decodeId(id).getBytes(StandardCharsets.US_ASCII));
-                channel.writeAndFlush(new NetworkMessage(
-                        formatMessage(MSG_TERMINAL_REGISTER_RESPONSE, id, false, response), remoteAddress));
+                sendResponse(channel, remoteAddress, formatMessage(MSG_TERMINAL_REGISTER_RESPONSE, id, false, response));
             }
 
         } else if (type == MSG_TERMINAL_AUTH || type == MSG_HEARTBEAT || type == MSG_HEARTBEAT_2 || type == MSG_PHOTO) {
@@ -267,8 +276,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                 response.writeByte(calendar.get(Calendar.HOUR_OF_DAY));
                 response.writeByte(calendar.get(Calendar.MINUTE));
                 response.writeByte(calendar.get(Calendar.SECOND));
-                channel.writeAndFlush(new NetworkMessage(
-                        formatMessage(MSG_TERMINAL_REGISTER_RESPONSE, id, false, response), remoteAddress));
+                sendResponse(channel, remoteAddress, formatMessage(MSG_TERMINAL_REGISTER_RESPONSE, id, false, response));
             }
 
         } else if (type == MSG_ACCELERATION) {
@@ -296,6 +304,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
             position.set(Position.KEY_G_SENSOR, data.toString());
 
+            position.setType(String.valueOf(type));
             return position;
 
         } else if (type == MSG_TRANSPARENT) {
