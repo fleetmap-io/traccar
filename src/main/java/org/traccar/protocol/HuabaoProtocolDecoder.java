@@ -402,7 +402,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
         position.set(Position.KEY_IGNITION, BitUtil.check(status, 0));
         // position.set(Position.KEY_MOTION, BitUtil.check(status, 4));
-        position.set(Position.KEY_BLOCKED, BitUtil.check(status, 10));
+        // position.set(Position.KEY_BLOCKED, BitUtil.check(status, 10));
         position.set(Position.KEY_CHARGE, BitUtil.check(status, 26));
 
         position.setValid(BitUtil.check(status, 1));
@@ -854,7 +854,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                 position.set(Position.KEY_ALARM, Position.ALARM_LOW_POWER);
             }
         } else if (product == 3) {
-            position.set(Position.KEY_BLOCKED, BitUtil.check(status, 5));
+            // position.set(Position.KEY_BLOCKED, BitUtil.check(status, 5));
             if (BitUtil.check(alarm, 0)) {
                 position.set(Position.KEY_ALARM, Position.ALARM_OVERSPEED);
             }
