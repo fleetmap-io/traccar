@@ -65,43 +65,9 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_TIME_SYNC_REQUEST = 0x0109;
     public static final int MSG_PHOTO = 0x8888;
     public static final int MSG_TRANSPARENT = 0x0900;
-    public static final int MSG_CONFIGURATION_PARAMETERS = 0x8103;
 
     public static final int RESULT_SUCCESS = 0;
 
-    public static ByteBuf formatMessage(int delimiter, int type, ByteBuf id, boolean shortIndex, ByteBuf data) {
-        ByteBuf buf = Unpooled.buffer();
-        buf.writeByte(delimiter);
-        buf.writeShort(type);
-        buf.writeShort(data.readableBytes());
-        buf.writeBytes(id);
-        if (shortIndex) {
-            buf.writeByte(1);
-        } else {
-            buf.writeShort(0);
-        }
-        buf.writeBytes(data);
-        data.release();
-        buf.writeByte(Checksum.xor(buf.nioBuffer(1, buf.readableBytes() - 1)));
-        buf.writeByte(delimiter);
-        return buf;
-    }
-
-
-    public static ByteBuf formatMessage(int delimiter, int type, ByteBuf id, ByteBuf data) {
-        ByteBuf buf = Unpooled.buffer();
-        buf.writeByte(delimiter);
-        buf.writeShort(type);
-        buf.writeShort(data.readableBytes());
-        buf.writeBytes(id);
-        buf.writeShort(1);
-        buf.writeByte(0x40);
-        buf.writeBytes(data);
-        data.release();
-        buf.writeByte(Checksum.xor(buf.nioBuffer(1, buf.readableBytes() - 1)));
-        buf.writeByte(delimiter);
-        return buf;
-    }
     public static ByteBuf formatMessage(int type, ByteBuf id, boolean shortIndex, ByteBuf data) {
         ByteBuf buf = Unpooled.buffer();
         buf.writeByte(0x7e);
@@ -266,7 +232,9 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
             sendGeneralResponse(channel, remoteAddress, id, type, index);
 
-            return decodeLocation(deviceSession, buf);
+            Position position = decodeLocation(deviceSession, buf);
+            position.setType(String.valueOf(type));
+            return position;
 
         } else if (type == MSG_LOCATION_REPORT_2 || type == MSG_LOCATION_REPORT_BLIND) {
 
@@ -274,13 +242,19 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                 sendGeneralResponse2(channel, remoteAddress, id, type);
             }
 
-            return decodeLocation2(deviceSession, buf, type);
+            Position position = decodeLocation2(deviceSession, buf, type);
+            position.setType(String.valueOf(type));
+            return position;
 
         } else if (type == MSG_LOCATION_BATCH || type == MSG_LOCATION_BATCH_2) {
 
             sendGeneralResponse(channel, remoteAddress, id, type, index);
 
-            return decodeLocationBatch(deviceSession, buf, type);
+            List<Position> positions = decodeLocationBatch(deviceSession, buf, type);
+            for (Position position : positions) {
+                position.setType(String.valueOf(type));
+            }
+            return positions;
 
         } else if (type == MSG_TIME_SYNC_REQUEST) {
 
@@ -823,28 +797,25 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                             while (buf.readerIndex() < endIndex) {
                                 int extendedType = buf.readUnsignedByte();
                                 int extendedLength = buf.readUnsignedByte();
-                                switch (extendedType) {
-                                    case 0x01:
-                                        long alarms = buf.readUnsignedInt();
-                                        if (BitUtil.check(alarms, 0)) {
-                                            position.set(Position.KEY_ALARM, Position.ALARM_ACCELERATION);
-                                        }
-                                        if (BitUtil.check(alarms, 1)) {
-                                            position.set(Position.KEY_ALARM, Position.ALARM_BRAKING);
-                                        }
-                                        if (BitUtil.check(alarms, 2)) {
-                                            position.set(Position.KEY_ALARM, Position.ALARM_CORNERING);
-                                        }
-                                        if (BitUtil.check(alarms, 3)) {
-                                            position.set(Position.KEY_ALARM, Position.ALARM_ACCIDENT);
-                                        }
-                                        if (BitUtil.check(alarms, 4)) {
-                                            position.set(Position.KEY_ALARM, Position.ALARM_TAMPERING);
-                                        }
-                                        break;
-                                    default:
-                                        buf.skipBytes(extendedLength);
-                                        break;
+                                if (extendedType == 0x01) {
+                                    long alarms = buf.readUnsignedInt();
+                                    if (BitUtil.check(alarms, 0)) {
+                                        position.set(Position.KEY_ALARM, Position.ALARM_ACCELERATION);
+                                    }
+                                    if (BitUtil.check(alarms, 1)) {
+                                        position.set(Position.KEY_ALARM, Position.ALARM_BRAKING);
+                                    }
+                                    if (BitUtil.check(alarms, 2)) {
+                                        position.set(Position.KEY_ALARM, Position.ALARM_CORNERING);
+                                    }
+                                    if (BitUtil.check(alarms, 3)) {
+                                        position.set(Position.KEY_ALARM, Position.ALARM_ACCIDENT);
+                                    }
+                                    if (BitUtil.check(alarms, 4)) {
+                                        position.set(Position.KEY_ALARM, Position.ALARM_TAMPERING);
+                                    }
+                                } else {
+                                    buf.skipBytes(extendedLength);
                                 }
                             }
                         }
