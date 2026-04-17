@@ -41,17 +41,9 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                 DataConverter.parseHex(getUniqueId(command.getDeviceId())));
         try {
             ByteBuf data = Unpooled.buffer();
-            byte[] time = DataConverter.parseHex(new SimpleDateFormat("yyMMddHHmmss").format(new Date()));
-
             switch (command.getType()) {
                 case Command.TYPE_CUSTOM:
-                    data.writeByte(1); // number of parameters
-                    data.writeInt(0xF030); // AT command transparent transmission
-                    int length = command.getString(Command.KEY_DATA).length();
-                    data.writeByte(length);
-                    data.writeCharSequence(command.getString(Command.KEY_DATA), StandardCharsets.US_ASCII);
-                    return HuabaoProtocolDecoder.formatMessage(
-                            0x7e, HuabaoProtocolDecoder.MSG_CONFIGURATION_PARAMETERS, id, false, data);
+                    return Unpooled.wrappedBuffer(DataConverter.parseHex(command.getString(Command.KEY_DATA)));
                 case Command.TYPE_ENGINE_STOP:
                     data.writeByte(0xf0);
                     return HuabaoProtocolDecoder.formatMessage(
