@@ -45,9 +45,9 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
         try {
             switch (command.getType()) {
                 case Command.TYPE_ENGINE_STOP:
-                    return encodeTransparent(id, "AS01BLO1");
+                    return encodeTransparent(id, "AS01BLO1\r\n");
                 case Command.TYPE_ENGINE_RESUME:
-                    return encodeTransparent(id, "AS01BLO0");
+                    return encodeTransparent(id, "AS01BLO0\r\n");
                 default:
                     return null;
             }
