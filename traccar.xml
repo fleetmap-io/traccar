@@ -110,4 +110,6 @@
 
   <entry key='processing.digitalPortTime.enable'>true</entry>
 
+  <entry key='log.protocol'>gt06</entry>
+
 </properties>
