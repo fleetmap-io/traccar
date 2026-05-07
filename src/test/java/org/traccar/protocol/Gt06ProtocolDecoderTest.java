@@ -21,6 +21,10 @@ public class Gt06ProtocolDecoderTest extends ProtocolTest {
                 "7979000E9B0332382E33A1E60D0A0289BE490D0A"),
                 Position.PREFIX_TEMP + 1, 28.3);
 
+        verifyAttribute(decoder, binary(
+                        "787828171a0506171e28c6039647580794393800080002da01333b007a08be0000013fb1af0101000733cc0d0a"),
+                Position.KEY_DRIVER_UNIQUE_ID, "0000013FB1AF");
+
         verifyPosition(decoder, binary(
                 "7878353714080d05000ac500a886eb0b7522f000100001fe0a05ea004f1b000001002e0400002328003b0217c0003c0401020001002c468a0d0a"));
 
