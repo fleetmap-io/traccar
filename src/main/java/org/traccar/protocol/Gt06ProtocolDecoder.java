@@ -19,8 +19,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.traccar.*;
 import org.traccar.helper.BcdUtil;
 import org.traccar.helper.BitUtil;
@@ -59,7 +57,6 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_GPS_LBS_2 = 0x22;
     public static final int MSG_GPS_LBS_3 = 0x37;
     public static final int MSG_STATUS = 0x13;
-    public static final int MSG_SATELLITE = 0x14;
     public static final int MSG_STRING = 0x15;
     public static final int MSG_GPS_LBS_STATUS_1 = 0x16;
     public static final int MSG_WIFI = 0x17;
@@ -97,8 +94,6 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_LBS_ALARM = 0xA5;
     public static final int MSG_LBS_ADDRESS = 0xA7;
     public static final int MSG_OBD = 0x8C;
-    public static final int MSG_DTC = 0x65;
-    public static final int MSG_PID = 0x66;
     public static final int MSG_BMS = 0x20;
     public static final int MSG_MULTIMEDIA = 0x21;
     public static final int MSG_BMS_2 = 0x40;
@@ -511,6 +506,10 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
 
             return decodeX1(channel, buf, deviceSession, type);
 
+        } else if (type == MSG_WIFI && dataLength == 35) { // Daovay
+
+            return decodeDaovayGpsLbsSerial(channel, buf, deviceSession, type);
+
         } else if (type == MSG_WIFI || type == MSG_WIFI_2) {
 
             return decodeWifi(channel, buf, deviceSession, type);
@@ -563,6 +562,32 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
         }
 
         return null;
+    }
+
+    private Object decodeDaovayGpsLbsSerial(
+            Channel channel, ByteBuf buf, DeviceSession deviceSession, int type) {
+
+        Position position = new Position(getProtocolName());
+        position.setDeviceId(deviceSession.getDeviceId());
+
+        decodeGps(position, buf, false, deviceSession.getTimeZone());
+
+        int remainingBeforeFooter = buf.readableBytes() - 6; // serial + crc + footer
+        ByteBuf extra = buf.readSlice(remainingBeforeFooter);
+
+        if (extra.readableBytes() >= 15) {
+            extra.skipBytes(9);
+
+            String driverId = ByteBufUtil.hexDump(extra.readSlice(6)).toUpperCase();
+
+            if (!driverId.equals("000000000000")) {
+                position.set(Position.KEY_DRIVER_UNIQUE_ID, driverId);
+            }
+        }
+
+        sendResponse(channel, false, type, buf.getShort(buf.writerIndex() - 6), null);
+
+        return position;
     }
 
     private Object decodeX1(Channel channel, ByteBuf buf, DeviceSession deviceSession, int type) {

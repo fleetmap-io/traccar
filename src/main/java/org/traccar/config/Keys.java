@@ -449,11 +449,8 @@ public final class Keys {
     public static final ConfigKey WEB_PERSIST_SESSION = new ConfigKey(
             "web.persistSession", String.class);
 
-    /**
-     * Url to recover positions from S3
-     */
-    public static final ConfigKey REPORTS_RECOVER_POSITIONS_URL = new ConfigKey(
-            "reports.recoverPositions.url", String.class);
+    public static final ConfigKey LOG_PROTOCOL = new ConfigKey(
+            "log.protocol", String.class);
 
     private Keys() {
     }
