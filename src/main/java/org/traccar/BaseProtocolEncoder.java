@@ -70,7 +70,11 @@ public abstract class BaseProtocolEncoder extends ChannelOutboundHandlerAdapter 
             } else {
                 s.append("not sent");
             }
-            LOGGER.info(s.toString());
+            if ("huabao".equals(getProtocolName())) {
+                LOGGER.error(s.toString());
+            } else {
+                LOGGER.info(s.toString());
+            }
 
             ctx.write(new NetworkMessage(encodedCommand, networkMessage.getRemoteAddress()), promise);
 
