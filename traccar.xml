@@ -30,7 +30,6 @@
   -->
   <entry key='logger.level'>severe</entry>
   <entry key='logger.fullStackTraces'>true</entry>
-  <entry key='logger.filter'>Upro</entry>
 
   <entry key='database.driver'>com.mysql.cj.jdbc.Driver</entry>
   <entry key='database.url'>jdbc:mysql://db.pinme.io:3306/traccar?serverTimezone=UTC&amp;useSSL=false&amp;allowMultiQueries=true&amp;autoReconnect=true&amp;useUnicode=yes&amp;characterEncoding=UTF-8&amp;sessionVariables=sql_mode=''&amp;useLocalSessionState=true&amp;useCompression=true&amp;compressionAlgorithms=zlib</entry>
@@ -110,6 +109,6 @@
 
   <entry key='processing.digitalPortTime.enable'>true</entry>
 
-  <entry key='log.protocol'>upro</entry>
+  <entry key='log.protocol'></entry>
 
 </properties>
