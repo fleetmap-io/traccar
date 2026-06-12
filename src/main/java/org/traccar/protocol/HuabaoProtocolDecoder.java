@@ -65,6 +65,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_PHOTO = 0x8888;
     public static final int MSG_TRANSPARENT = 0x0900;
     public static final int MSG_TRANSPARENT_DOWNLINK = 0x8900;
+    public static final int MSG_TERMINAL_CONTROL = 0x8105;
 
     public static final int RESULT_SUCCESS = 0;
 

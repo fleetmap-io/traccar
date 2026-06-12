@@ -42,12 +42,17 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
     protected Object encodeCommand(Command command) {
         ByteBuf id = Unpooled.wrappedBuffer(
                 DataConverter.parseHex(getUniqueId(command.getDeviceId())));
+        ByteBuf data = Unpooled.buffer();
         try {
             switch (command.getType()) {
                 case Command.TYPE_ENGINE_STOP:
-                    return encodeTransparent(id, "AS01BLO1\r\n");
+                    //return encodeTransparent(id, "AS01BLO1\r\n");
                 case Command.TYPE_ENGINE_RESUME:
-                    return encodeTransparent(id, "AS01BLO0\r\n");
+                    data.writeCharSequence(command.getType().equals(Command.TYPE_ENGINE_STOP) ? "#0;1" : "#0;0",
+                                StandardCharsets.US_ASCII);
+                    return HuabaoProtocolDecoder.formatMessage(
+                            HuabaoProtocolDecoder.MSG_TERMINAL_CONTROL, id, false, data);
+                    // return encodeTransparent(id, "AS01BLO0\r\n");
                 default:
                     return null;
             }
