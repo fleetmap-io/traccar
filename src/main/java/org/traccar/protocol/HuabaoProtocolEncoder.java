@@ -46,7 +46,7 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
         try {
             switch (command.getType()) {
                 case Command.TYPE_CUSTOM:
-                    return encodeTransparent(id, command.getString(Command.KEY_DATA) + "\r\n");
+                    return encodeTransparent(id, command.getString(Command.KEY_DATA));
                 case Command.TYPE_ENGINE_STOP:
                 case Command.TYPE_ENGINE_RESUME:
                     data.writeCharSequence(command.getType().equals(Command.TYPE_ENGINE_STOP) ? "#0;1" : "#0;0",
