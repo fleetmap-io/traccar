@@ -21,6 +21,8 @@ import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.traccar.config.Config;
+import org.traccar.config.Keys;
 import org.traccar.model.Command;
 
 public abstract class BaseProtocolEncoder extends ChannelOutboundHandlerAdapter {
@@ -30,6 +32,8 @@ public abstract class BaseProtocolEncoder extends ChannelOutboundHandlerAdapter 
     private static final String PROTOCOL_UNKNOWN = "unknown";
 
     private final Protocol protocol;
+
+    private final Config config = Context.getConfig();
 
     public BaseProtocolEncoder(Protocol protocol) {
         this.protocol = protocol;
@@ -70,7 +74,7 @@ public abstract class BaseProtocolEncoder extends ChannelOutboundHandlerAdapter 
             } else {
                 s.append("not sent");
             }
-            if ("huabao".equals(getProtocolName())) {
+            if (config.getString(Keys.LOG_PROTOCOL, "").equalsIgnoreCase(getProtocolName())) {
                 LOGGER.error(s.toString());
             } else {
                 LOGGER.info(s.toString());
