@@ -132,7 +132,7 @@ public class PermissionsManager {
     }
 
     public final void refreshDeviceAndGroupPermissions() {
-        LOGGER.error("refreshDeviceAndGroupPermissions called", new RuntimeException("caller"));
+        LOGGER.error("refreshDeviceAndGroupPermissions called");
         lock.writeLock().lock();
         try {
             groupPermissions.clear();
