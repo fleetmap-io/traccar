@@ -169,6 +169,7 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
     @PUT
     public Response update(T entity) throws SQLException {
         Context.getPermissionsManager().checkReadonly(getUserId());
+        boolean refreshDeviceAndGroupPermissions = false;
         if (baseClass.equals(Device.class)) {
             Context.getPermissionsManager().checkDeviceReadonly(getUserId());
             Device oldDevice = (Device) Context.getManager(baseClass).getById(entity.getId());
@@ -178,6 +179,7 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
                         getUserId(), entity.getId(), oldDevice.getUniqueId(), newDevice.getUniqueId());
                 Context.getPermissionsManager().checkAdmin(getUserId());
             }
+            refreshDeviceAndGroupPermissions = oldDevice.getGroupId() != newDevice.getGroupId();
         } else if (baseClass.equals(User.class)) {
             User before = Context.getPermissionsManager().getUser(entity.getId());
             Context.getPermissionsManager().checkUserUpdate(getUserId(), before, (User) entity);
@@ -195,7 +197,7 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
         Context.getManager(baseClass).updateItem(entity);
         LogAction.edit(getUserId(), entity);
 
-        if (baseClass.equals(Group.class) || baseClass.equals(Device.class)) {
+        if (baseClass.equals(Group.class) || refreshDeviceAndGroupPermissions) {
             LOGGER.error("Refreshing permissions after {} update id={} user={}",
                     baseClass.getSimpleName(), entity.getId(), getUserId());
             Context.getPermissionsManager().refreshDeviceAndGroupPermissions();
