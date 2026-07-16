@@ -158,6 +158,8 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
         if (manager instanceof SimpleObjectManager) {
             ((SimpleObjectManager<T>) manager).refreshUserItems();
         } else if (baseClass.equals(Group.class) || baseClass.equals(Device.class)) {
+            LOGGER.error("Refreshing permissions after bulk {} add count={} user={}",
+                    baseClass.getSimpleName(), entities.size(), getUserId());
             Context.getPermissionsManager().refreshDeviceAndGroupPermissions();
             Context.getPermissionsManager().refreshAllExtendedPermissions();
         }
@@ -232,6 +234,8 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
                 Context.getGroupsManager().updateGroupCache(true);
                 Context.getDeviceManager().updateDeviceCache(true);
             }
+            LOGGER.error("Refreshing permissions after {} remove id={} user={}",
+                    baseClass.getSimpleName(), id, getUserId());
             Context.getPermissionsManager().refreshDeviceAndGroupPermissions();
             if (baseClass.equals(User.class)) {
                 Context.getPermissionsManager().refreshAllUsersPermissions();

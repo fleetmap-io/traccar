@@ -92,6 +92,8 @@ public class DeviceManager extends BaseObjectManager<Device> implements Identity
             LOGGER.info("Automatically registered device " + uniqueId);
 
             if (defaultGroupId != 0) {
+                LOGGER.error("Refreshing permissions after automatic device registration id={} group={}",
+                        device.getId(), defaultGroupId);
                 Context.getPermissionsManager().refreshDeviceAndGroupPermissions();
                 Context.getPermissionsManager().refreshAllExtendedPermissions();
             }
