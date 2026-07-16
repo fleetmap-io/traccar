@@ -61,6 +61,7 @@ public class PermissionsManager {
         this.dataManager = dataManager;
         this.usersManager = usersManager;
         refreshServer();
+        LOGGER.error("Refreshing permissions during permissions manager initialization");
         refreshDeviceAndGroupPermissions();
     }
 
@@ -132,7 +133,6 @@ public class PermissionsManager {
     }
 
     public final void refreshDeviceAndGroupPermissions() {
-        LOGGER.error("refreshDeviceAndGroupPermissions called");
         lock.writeLock().lock();
         try {
             groupPermissions.clear();
@@ -407,6 +407,8 @@ public class PermissionsManager {
         if (permission.getOwnerClass().equals(User.class)) {
             if (permission.getPropertyClass().equals(Device.class)
                     || permission.getPropertyClass().equals(Group.class)) {
+                LOGGER.error("Refreshing permissions after {} permission change owner={}",
+                        permission.getPropertyClass().getSimpleName(), permission.getOwnerId());
                 refreshDeviceAndGroupPermissions();
                 refreshAllExtendedPermissions();
             } else if (permission.getPropertyClass().equals(ManagedUser.class)) {
