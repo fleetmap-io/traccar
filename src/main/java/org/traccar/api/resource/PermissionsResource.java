@@ -30,6 +30,8 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.traccar.Context;
 import org.traccar.api.BaseResource;
 import org.traccar.helper.LogAction;
@@ -41,6 +43,25 @@ import org.traccar.model.User;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class PermissionsResource  extends BaseResource {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PermissionsResource.class);
+
+    private void logPermissionChange(String operation, List<LinkedHashMap<String, Long>> entities)
+            throws ClassNotFoundException {
+        if (!entities.isEmpty()) {
+            Permission firstPermission = new Permission(entities.get(0));
+            List<Long> ownerIds = new ArrayList<>();
+            List<Long> propertyIds = new ArrayList<>();
+            for (LinkedHashMap<String, Long> entity : entities) {
+                Permission permission = new Permission(entity);
+                ownerIds.add(permission.getOwnerId());
+                propertyIds.add(permission.getPropertyId());
+            }
+            LOGGER.error("Permission {} actor={} ownerType={} owners={} propertyType={} properties={} count={}",
+                    operation, getUserId(), firstPermission.getOwnerClass().getSimpleName(), ownerIds,
+                    firstPermission.getPropertyClass().getSimpleName(), propertyIds, entities.size());
+        }
+    }
 
     private void checkPermission(Permission permission, boolean link) {
         if (!link && permission.getOwnerClass().equals(User.class)
@@ -103,6 +124,7 @@ public class PermissionsResource  extends BaseResource {
                     permissions.collect(Collectors.toList()), true);
         }
         if (!entities.isEmpty()) {
+            logPermissionChange("link", entities);
             Context.getPermissionsManager().refreshPermissions(new Permission(entities.get(0)));
         }
         return Response.noContent().build();
@@ -149,6 +171,7 @@ public class PermissionsResource  extends BaseResource {
         }
 
         if (!entities.isEmpty()) {
+            logPermissionChange("unlink", entities);
             Context.getPermissionsManager().refreshPermissions(new Permission(entities.get(0)));
         }
         return Response.noContent().build();
