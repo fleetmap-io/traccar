@@ -46,6 +46,17 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                 HuabaoProtocolDecoder.MSG_TRANSPARENT_DOWNLINK, id, false, data);
     }
 
+    static ByteBuf encodeTerminalId(String uniqueId) {
+        if (uniqueId.matches("[0-9]{15}")) {
+            long imei = Long.parseLong(uniqueId.substring(0, 14));
+            ByteBuf id = Unpooled.buffer(6);
+            id.writeShort((int) (imei >> 32));
+            id.writeInt((int) imei);
+            return id;
+        }
+        return Unpooled.wrappedBuffer(DataConverter.parseHex(uniqueId));
+    }
+
     @Override
     protected Object encodeCommand(Command command) {
         String uniqueId = getUniqueId(command.getDeviceId());
@@ -54,7 +65,7 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                 command.getDeviceId(), uniqueId, command.getType());
         ByteBuf id;
         try {
-            id = Unpooled.wrappedBuffer(DataConverter.parseHex(uniqueId));
+            id = encodeTerminalId(uniqueId);
         } catch (RuntimeException error) {
             LOGGER.error(
                     "Huabao command terminal ID encoding failed deviceId={} uniqueId={}",
