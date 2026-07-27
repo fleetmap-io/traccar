@@ -22,10 +22,14 @@ import org.traccar.Context;
 import org.traccar.Protocol;
 import org.traccar.helper.DataConverter;
 import org.traccar.model.Command;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 
 public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(HuabaoProtocolEncoder.class);
 
     private static final int DEVICE_TYPE_JC181 = 55;
     private static final int DEVICE_TYPE_JC371 = 56;
@@ -55,7 +59,13 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                             command.getDeviceId(), "deviceType", 0, false, false);
                     boolean jimiOnlineCommand =
                             deviceType == DEVICE_TYPE_JC181 || deviceType == DEVICE_TYPE_JC371;
-                    return encodeTransparent(id, payload, jimiOnlineCommand ? 0xF0 : 0x40);
+                    int subtype = jimiOnlineCommand ? 0xF0 : 0x40;
+                    LOGGER.error(
+                            "Huabao command outgoing deviceId={} deviceType={} subtype=0x{} payload={}",
+                            command.getDeviceId(), deviceType, Integer.toHexString(subtype).toUpperCase(),
+                            payload.startsWith("APN,") ? "APN,<redacted>"
+                                    : payload.replace("\r", "\\r").replace("\n", "\\n"));
+                    return encodeTransparent(id, payload, subtype);
                 case Command.TYPE_ENGINE_STOP:
                 case Command.TYPE_ENGINE_RESUME:
                     data.writeCharSequence(command.getType().equals(Command.TYPE_ENGINE_STOP) ? "#0;1" : "#0;0",

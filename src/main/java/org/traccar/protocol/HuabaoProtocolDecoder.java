@@ -31,6 +31,8 @@ import org.traccar.helper.UnitsConverter;
 import org.traccar.model.CellTower;
 import org.traccar.model.Network;
 import org.traccar.model.Position;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -43,6 +45,8 @@ import java.util.List;
 import java.util.TimeZone;
 
 public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(HuabaoProtocolDecoder.class);
 
     public HuabaoProtocolDecoder(Protocol protocol) {
         super(protocol);
@@ -222,6 +226,10 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             int responseType = buf.readUnsignedShort();
             int result = buf.readUnsignedByte();
 
+            LOGGER.error(
+                    "Huabao command acknowledgment deviceId={} message=0x0001 responseType=0x{} result={}",
+                    deviceSession.getDeviceId(), Integer.toHexString(responseType).toUpperCase(), result);
+
             if (responseType == MSG_TRANSPARENT_DOWNLINK) {
                 Position position = new Position(getProtocolName());
                 position.setDeviceId(deviceSession.getDeviceId());
@@ -327,9 +335,13 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
             int length = buf.readInt();
             if (length > 0 && length <= buf.readableBytes()) {
+                String result = buf.readCharSequence(length, StandardCharsets.US_ASCII).toString();
+                LOGGER.error(
+                        "Huabao command response deviceId={} message=0x0701 result={}",
+                        deviceSession.getDeviceId(), result.replace("\r", "\\r").replace("\n", "\\n"));
                 position.set(
                         Position.KEY_RESULT,
-                        buf.readCharSequence(length, StandardCharsets.US_ASCII).toString());
+                        result);
                 return position;
             }
         }
@@ -993,6 +1005,9 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     private Position decodeTransparent(DeviceSession deviceSession, ByteBuf buf) {
 
         int type = buf.readUnsignedByte();
+        LOGGER.error(
+                "Huabao transparent response deviceId={} message=0x0900 subtype=0x{}",
+                deviceSession.getDeviceId(), Integer.toHexString(type).toUpperCase());
 
         if (type == 0x40) {
 
@@ -1002,6 +1017,9 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             getLastLocation(position, null);
             String data = buf.readCharSequence(
                     buf.readableBytes() - 2, StandardCharsets.US_ASCII).toString().trim();
+            LOGGER.error(
+                    "Huabao transparent text deviceId={} result={}",
+                    deviceSession.getDeviceId(), data.replace("\r", "\\r").replace("\n", "\\n"));
             if (data.startsWith("GTSL") || data.startsWith("SGBT")) {
                 String[] values = data.split("\\|");
                 if (values.length > 4) {
