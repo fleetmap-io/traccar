@@ -80,7 +80,9 @@ public class CommandsManager  extends ExtendedObjectManager<Command> {
             ActiveDevice activeDevice = Context.getConnectionManager().getActiveDevice(deviceId);
             if (activeDevice != null) {
                 if (activeDevice.supportsLiveCommands()) {
-                    LOGGER.error("Command dispatching to active device deviceId={} type={}", deviceId, command.getType());
+                    LOGGER.error(
+                            "Command dispatching to active device deviceId={} protocol={} type={}",
+                            deviceId, activeDevice.getProtocolName(), command.getType());
                     activeDevice.sendCommand(command);
                 } else {
                     LOGGER.error(
