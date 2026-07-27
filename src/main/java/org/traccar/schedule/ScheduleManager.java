@@ -12,6 +12,7 @@ public class ScheduleManager {
         executor = Executors.newSingleThreadScheduledExecutor();
 
         new TaskDeviceInactivityCheck().schedule(executor);
+        new TaskGeofenceDeadlineCheck().schedule(executor);
 
     }
 
