@@ -23,6 +23,14 @@ public class HuabaoProtocolDecoderTest extends ProtocolTest {
                 Position.KEY_RESULT, "RTMP,OK");
 
         verifyAttribute(decoder, binary(
+                "7e6006000801334567890600010152544d502c4f4bc27e"),
+                Position.KEY_RESULT, "RTMP,OK");
+
+        verifyAttribute(decoder, binary(
+                "7e1300000601334567890600010001004f004b8e7e"),
+                Position.KEY_RESULT, "OK");
+
+        verifyAttribute(decoder, binary(
                 "7e0001000501334567890600020000890000107e"),
                 Position.KEY_RESULT, "0x8900 accepted");
 

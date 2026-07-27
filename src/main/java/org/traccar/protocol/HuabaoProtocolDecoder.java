@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.SocketAddress;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -70,7 +71,9 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_PHOTO = 0x8888;
     public static final int MSG_TRANSPARENT = 0x0900;
     public static final int MSG_TRANSPARENT_DOWNLINK = 0x8900;
+    public static final int MSG_REPORT_TEXT_MESSAGE = 0x6006;
     public static final int MSG_COMMAND_RESPONSE = 0x0701;
+    public static final int MSG_TEXT_MESSAGE_RESPONSE = 0x1300;
     public static final int MSG_TERMINAL_CONTROL = 0x8105;
 
     public static final int RESULT_SUCCESS = 0;
@@ -203,6 +206,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         buf.readUnsignedByte(); // start marker
         int type = buf.readUnsignedShort();
         int attribute = buf.readUnsignedShort();
+        int bodyLength = attribute & 0x3ff;
         ByteBuf id = buf.readSlice(6); // phone number
         int index;
         if (type == MSG_LOCATION_REPORT_2 || type == MSG_LOCATION_REPORT_BLIND) {
@@ -324,6 +328,37 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             if (position != null) {
                 position.setType(String.valueOf(type));
             }
+            return position;
+
+        } else if (type == MSG_REPORT_TEXT_MESSAGE) {
+
+            sendGeneralResponse(channel, remoteAddress, id, type, index);
+
+            Position position = new Position(getProtocolName());
+            position.setDeviceId(deviceSession.getDeviceId());
+            getLastLocation(position, null);
+
+            buf.readUnsignedByte(); // encoding
+            Charset charset = Charset.isSupported("GBK") ? Charset.forName("GBK") : StandardCharsets.US_ASCII;
+            String result = buf.readCharSequence(bodyLength - 1, charset).toString().trim();
+            LOGGER.error(
+                    "Huabao reported text deviceId={} message=0x6006 result={}",
+                    deviceSession.getDeviceId(), result.replace("\r", "\\r").replace("\n", "\\n"));
+            position.set(Position.KEY_RESULT, result);
+            return position;
+
+        } else if (type == MSG_TEXT_MESSAGE_RESPONSE) {
+
+            Position position = new Position(getProtocolName());
+            position.setDeviceId(deviceSession.getDeviceId());
+            getLastLocation(position, null);
+
+            buf.readUnsignedShort(); // response serial number
+            String result = buf.readCharSequence(bodyLength - 2, StandardCharsets.UTF_16BE).toString().trim();
+            LOGGER.error(
+                    "Huabao text command response deviceId={} message=0x1300 result={}",
+                    deviceSession.getDeviceId(), result.replace("\r", "\\r").replace("\n", "\\n"));
+            position.set(Position.KEY_RESULT, result);
             return position;
 
         } else if (type == MSG_COMMAND_RESPONSE) {
