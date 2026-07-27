@@ -973,6 +973,8 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                 if (values.length > 4) {
                     position.set(Position.KEY_DRIVER_UNIQUE_ID, values[4]);
                 }
+            } else if (!data.isEmpty()) {
+                position.set(Position.KEY_RESULT, data);
             }
 
             return position.getAttributes().isEmpty() ? null : position;
