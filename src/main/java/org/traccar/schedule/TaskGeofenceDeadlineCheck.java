@@ -44,7 +44,7 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
                 String alarmsAttribute = notification.getString("alarms");
                 if (alarmsAttribute != null
                         && Arrays.asList(alarmsAttribute.split(",")).contains(Position.ALARM_GEOFENCE_ABSENCE)) {
-                    LOGGER.info(
+                    LOGGER.error(
                             "Found geofence absence notification id={} name={} geofences={} timetable={}",
                             notificationId,
                             notification.getString("name"),
