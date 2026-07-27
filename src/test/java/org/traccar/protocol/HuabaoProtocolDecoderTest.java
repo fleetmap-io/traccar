@@ -35,6 +35,13 @@ public class HuabaoProtocolDecoderTest extends ProtocolTest {
                 Position.KEY_RESULT, "0x8900 accepted");
 
         verifyAttribute(decoder, binary(
+                "7e120500220133456789060001000100000001012607272200002607272201000000000000000000020000000f4240a47e"),
+                "videoResources",
+                "[{\"channel\":1,\"startTime\":1785189600000,\"endTime\":1785189660000,"
+                        + "\"alarmFlag\":0,\"resourceType\":2,\"streamType\":0,\"storageType\":0,"
+                        + "\"fileSize\":1000000}]");
+
+        verifyAttribute(decoder, binary(
                 "7e550104337401903111850622072002454206133574075359513a0000080100000001aa00005ded05e203000000000c06005affb5ffb40a0302dc65100100137e"),
                 Position.KEY_CHARGE, true);
 

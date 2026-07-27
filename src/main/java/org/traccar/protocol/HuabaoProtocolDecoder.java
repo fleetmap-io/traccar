@@ -77,6 +77,9 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_TERMINAL_CONTROL = 0x8105;
     public static final int MSG_VIDEO_REQUEST = 0x9101;
     public static final int MSG_VIDEO_CONTROL = 0x9102;
+    public static final int MSG_VIDEO_PLAYBACK = 0x9201;
+    public static final int MSG_VIDEO_LIST = 0x9205;
+    public static final int MSG_VIDEO_LIST_RESPONSE = 0x1205;
 
     public static final int RESULT_SUCCESS = 0;
 
@@ -216,6 +219,9 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         } else {
             index = buf.readUnsignedShort();
         }
+        boolean fragmented = BitUtil.check(attribute, 13);
+        int packetCount = fragmented ? buf.readUnsignedShort() : 1;
+        int packetIndex = fragmented ? buf.readUnsignedShort() : 1;
 
         DeviceSession deviceSession = getDeviceSession(channel, remoteAddress, decodeId(id));
         if (deviceSession == null) {
@@ -224,6 +230,30 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
         if (!deviceSession.contains(DeviceSession.KEY_TIMEZONE)) {
             deviceSession.set(DeviceSession.KEY_TIMEZONE, getTimeZone(deviceSession.getDeviceId(), "GMT+0"));
+        }
+
+        if (type == MSG_VIDEO_LIST_RESPONSE && fragmented) {
+            if (packetCount <= 0 || packetCount > 1024 || packetIndex <= 0 || packetIndex > packetCount) {
+                return null;
+            }
+            byte[][] parts = deviceSession.get("videoListParts");
+            if (parts == null || parts.length != packetCount) {
+                parts = new byte[packetCount][];
+                deviceSession.set("videoListParts", parts);
+            }
+            parts[packetIndex - 1] = ByteBufUtil.getBytes(buf, buf.readerIndex(), bodyLength);
+            sendGeneralResponse(channel, remoteAddress, id, type, index);
+            for (byte[] part : parts) {
+                if (part == null) {
+                    return null;
+                }
+            }
+            deviceSession.set("videoListParts", null);
+            ByteBuf combined = Unpooled.buffer();
+            for (byte[] part : parts) {
+                combined.writeBytes(part);
+            }
+            buf = combined;
         }
 
         if (type == MSG_TERMINAL_GENERAL_RESPONSE) {
@@ -238,7 +268,9 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
             if (responseType == MSG_TRANSPARENT_DOWNLINK
                     || responseType == MSG_VIDEO_REQUEST
-                    || responseType == MSG_VIDEO_CONTROL) {
+                    || responseType == MSG_VIDEO_CONTROL
+                    || responseType == MSG_VIDEO_PLAYBACK
+                    || responseType == MSG_VIDEO_LIST) {
                 Position position = new Position(getProtocolName());
                 position.setDeviceId(deviceSession.getDeviceId());
                 getLastLocation(position, null);
@@ -248,6 +280,41 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                         result == RESULT_SUCCESS ? commandType + " accepted" : commandType + " rejected: " + result);
                 return position;
             }
+
+        } else if (type == MSG_VIDEO_LIST_RESPONSE) {
+
+            buf.readUnsignedShort(); // response serial number
+            long total = buf.readUnsignedInt();
+            StringBuilder resources = new StringBuilder("[");
+            int count = 0;
+            while (buf.readableBytes() >= 28 && count < total) {
+                if (count > 0) {
+                    resources.append(',');
+                }
+                resources.append('{');
+                resources.append("\"channel\":").append(buf.readUnsignedByte()).append(',');
+                resources.append("\"startTime\":").append(readDate(buf, TimeZone.getTimeZone("UTC")).getTime())
+                        .append(',');
+                resources.append("\"endTime\":").append(readDate(buf, TimeZone.getTimeZone("UTC")).getTime())
+                        .append(',');
+                resources.append("\"alarmFlag\":").append(buf.readLong()).append(',');
+                resources.append("\"resourceType\":").append(buf.readUnsignedByte()).append(',');
+                resources.append("\"streamType\":").append(buf.readUnsignedByte()).append(',');
+                resources.append("\"storageType\":").append(buf.readUnsignedByte()).append(',');
+                resources.append("\"fileSize\":").append(buf.readUnsignedInt());
+                resources.append('}');
+                count++;
+            }
+            resources.append(']');
+
+            Position position = new Position(getProtocolName());
+            position.setDeviceId(deviceSession.getDeviceId());
+            getLastLocation(position, null);
+            position.set("videoResources", resources.toString());
+            if (!fragmented) {
+                sendGeneralResponse(channel, remoteAddress, id, type, index);
+            }
+            return position;
 
         } else if (type == MSG_TERMINAL_REGISTER) {
 

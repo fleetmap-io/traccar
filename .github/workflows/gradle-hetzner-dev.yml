@@ -2,7 +2,7 @@ name: deploy hetzner
 
 on:
   push:
-    branches: [ fleetmap ]
+    branches: [ fleetmap_disable ]
 
 jobs:
   build:
