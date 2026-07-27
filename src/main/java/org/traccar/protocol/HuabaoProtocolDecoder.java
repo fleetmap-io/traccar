@@ -50,6 +50,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
     public static final int MSG_GENERAL_RESPONSE = 0x8001;
     public static final int MSG_GENERAL_RESPONSE_2 = 0x4401;
+    public static final int MSG_TERMINAL_GENERAL_RESPONSE = 0x0001;
     public static final int MSG_HEARTBEAT = 0x0002;
     public static final int MSG_HEARTBEAT_2 = 0x0506;
     public static final int MSG_TERMINAL_REGISTER = 0x0100;
@@ -215,7 +216,23 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             deviceSession.set(DeviceSession.KEY_TIMEZONE, getTimeZone(deviceSession.getDeviceId(), "GMT+0"));
         }
 
-        if (type == MSG_TERMINAL_REGISTER) {
+        if (type == MSG_TERMINAL_GENERAL_RESPONSE) {
+
+            buf.readUnsignedShort(); // response serial number
+            int responseType = buf.readUnsignedShort();
+            int result = buf.readUnsignedByte();
+
+            if (responseType == MSG_TRANSPARENT_DOWNLINK) {
+                Position position = new Position(getProtocolName());
+                position.setDeviceId(deviceSession.getDeviceId());
+                getLastLocation(position, null);
+                position.set(
+                        Position.KEY_RESULT,
+                        result == RESULT_SUCCESS ? "0x8900 accepted" : "0x8900 rejected: " + result);
+                return position;
+            }
+
+        } else if (type == MSG_TERMINAL_REGISTER) {
 
             if (channel != null) {
                 ByteBuf response = Unpooled.buffer();
