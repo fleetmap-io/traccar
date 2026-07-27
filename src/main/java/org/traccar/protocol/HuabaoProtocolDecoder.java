@@ -75,6 +75,8 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_COMMAND_RESPONSE = 0x0701;
     public static final int MSG_TEXT_MESSAGE_RESPONSE = 0x1300;
     public static final int MSG_TERMINAL_CONTROL = 0x8105;
+    public static final int MSG_VIDEO_REQUEST = 0x9101;
+    public static final int MSG_VIDEO_CONTROL = 0x9102;
 
     public static final int RESULT_SUCCESS = 0;
 
@@ -234,13 +236,16 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                     "Huabao command acknowledgment deviceId={} message=0x0001 responseType=0x{} result={}",
                     deviceSession.getDeviceId(), Integer.toHexString(responseType).toUpperCase(), result);
 
-            if (responseType == MSG_TRANSPARENT_DOWNLINK) {
+            if (responseType == MSG_TRANSPARENT_DOWNLINK
+                    || responseType == MSG_VIDEO_REQUEST
+                    || responseType == MSG_VIDEO_CONTROL) {
                 Position position = new Position(getProtocolName());
                 position.setDeviceId(deviceSession.getDeviceId());
                 getLastLocation(position, null);
+                String commandType = String.format("0x%04X", responseType);
                 position.set(
                         Position.KEY_RESULT,
-                        result == RESULT_SUCCESS ? "0x8900 accepted" : "0x8900 rejected: " + result);
+                        result == RESULT_SUCCESS ? commandType + " accepted" : commandType + " rejected: " + result);
                 return position;
             }
 
