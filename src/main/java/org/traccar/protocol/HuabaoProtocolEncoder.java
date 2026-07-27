@@ -18,6 +18,7 @@ package org.traccar.protocol;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.traccar.BaseProtocolEncoder;
+import org.traccar.Context;
 import org.traccar.Protocol;
 import org.traccar.helper.DataConverter;
 import org.traccar.model.Command;
@@ -26,13 +27,16 @@ import java.nio.charset.StandardCharsets;
 
 public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
 
+    private static final int DEVICE_TYPE_JC181 = 55;
+    private static final int DEVICE_TYPE_JC371 = 56;
+
     public HuabaoProtocolEncoder(Protocol protocol) {
         super(protocol);
     }
 
-    private ByteBuf encodeTransparent(ByteBuf id, String payload) {
+    private ByteBuf encodeTransparent(ByteBuf id, String payload, int subtype) {
         ByteBuf data = Unpooled.buffer();
-        data.writeByte(0x40);
+        data.writeByte(subtype);
         data.writeBytes(payload.getBytes(StandardCharsets.US_ASCII));
         return HuabaoProtocolDecoder.formatMessage(
                 HuabaoProtocolDecoder.MSG_TRANSPARENT_DOWNLINK, id, false, data);
@@ -46,7 +50,12 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
         try {
             switch (command.getType()) {
                 case Command.TYPE_CUSTOM:
-                    return encodeTransparent(id, command.getString(Command.KEY_DATA));
+                    String payload = command.getString(Command.KEY_DATA);
+                    int deviceType = Context.getIdentityManager().lookupAttributeInteger(
+                            command.getDeviceId(), "deviceType", 0, false, false);
+                    boolean jimiOnlineCommand =
+                            deviceType == DEVICE_TYPE_JC181 || deviceType == DEVICE_TYPE_JC371;
+                    return encodeTransparent(id, payload, jimiOnlineCommand ? 0xF0 : 0x40);
                 case Command.TYPE_ENGINE_STOP:
                 case Command.TYPE_ENGINE_RESUME:
                     data.writeCharSequence(command.getType().equals(Command.TYPE_ENGINE_STOP) ? "#0;1" : "#0;0",

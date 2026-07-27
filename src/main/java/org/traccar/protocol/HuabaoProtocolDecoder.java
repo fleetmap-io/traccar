@@ -65,6 +65,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_PHOTO = 0x8888;
     public static final int MSG_TRANSPARENT = 0x0900;
     public static final int MSG_TRANSPARENT_DOWNLINK = 0x8900;
+    public static final int MSG_COMMAND_RESPONSE = 0x0701;
     public static final int MSG_TERMINAL_CONTROL = 0x8105;
 
     public static final int RESULT_SUCCESS = 0;
@@ -299,6 +300,21 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                 position.setType(String.valueOf(type));
             }
             return position;
+
+        } else if (type == MSG_COMMAND_RESPONSE) {
+
+            Position position = new Position(getProtocolName());
+            position.setDeviceId(deviceSession.getDeviceId());
+
+            getLastLocation(position, null);
+
+            int length = buf.readInt();
+            if (length > 0 && length <= buf.readableBytes()) {
+                position.set(
+                        Position.KEY_RESULT,
+                        buf.readCharSequence(length, StandardCharsets.US_ASCII).toString());
+                return position;
+            }
         }
 
         return null;
@@ -967,7 +983,8 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             position.setDeviceId(deviceSession.getDeviceId());
 
             getLastLocation(position, null);
-            String data = buf.readCharSequence(buf.readableBytes(), StandardCharsets.US_ASCII).toString().trim();
+            String data = buf.readCharSequence(
+                    buf.readableBytes() - 2, StandardCharsets.US_ASCII).toString().trim();
             if (data.startsWith("GTSL") || data.startsWith("SGBT")) {
                 String[] values = data.split("\\|");
                 if (values.length > 4) {
