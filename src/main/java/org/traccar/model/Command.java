@@ -55,6 +55,8 @@ public class Command extends Message implements Cloneable {
     public static final String TYPE_GET_DEVICE_STATUS = "getDeviceStatus";
     public static final String TYPE_VIDEO_START = "videoStart";
     public static final String TYPE_VIDEO_STOP = "videoStop";
+    public static final String TYPE_VIDEO_LIST = "videoList";
+    public static final String TYPE_VIDEO_PLAYBACK = "videoPlayback";
 
     public static final String TYPE_MODE_POWER_SAVING = "modePowerSaving";
     public static final String TYPE_MODE_DEEP_SLEEP = "modeDeepSleep";
@@ -81,6 +83,8 @@ public class Command extends Message implements Cloneable {
     public static final String KEY_PHONE = "phone";
     public static final String KEY_SERVER = "server";
     public static final String KEY_PORT = "port";
+    public static final String KEY_START_TIME = "startTime";
+    public static final String KEY_END_TIME = "endTime";
 
     @Override
     public Command clone() throws CloneNotSupportedException {
