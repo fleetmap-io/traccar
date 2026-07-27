@@ -48,8 +48,19 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
 
     @Override
     protected Object encodeCommand(Command command) {
-        ByteBuf id = Unpooled.wrappedBuffer(
-                DataConverter.parseHex(getUniqueId(command.getDeviceId())));
+        String uniqueId = getUniqueId(command.getDeviceId());
+        LOGGER.error(
+                "Huabao command encoding started deviceId={} uniqueId={} type={}",
+                command.getDeviceId(), uniqueId, command.getType());
+        ByteBuf id;
+        try {
+            id = Unpooled.wrappedBuffer(DataConverter.parseHex(uniqueId));
+        } catch (RuntimeException error) {
+            LOGGER.error(
+                    "Huabao command terminal ID encoding failed deviceId={} uniqueId={}",
+                    command.getDeviceId(), uniqueId, error);
+            throw error;
+        }
         ByteBuf data = Unpooled.buffer();
         try {
             switch (command.getType()) {
@@ -61,7 +72,7 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                             deviceType == DEVICE_TYPE_JC181 || deviceType == DEVICE_TYPE_JC371;
                     int subtype = jimiOnlineCommand ? 0xF0 : 0x40;
                     LOGGER.error(
-                            "Huabao command outgoing deviceId={} deviceType={} subtype=0x{} payload={}",
+                            "Huabao command encoded deviceId={} deviceType={} subtype=0x{} payload={}",
                             command.getDeviceId(), deviceType, Integer.toHexString(subtype).toUpperCase(),
                             payload.startsWith("APN,") ? "APN,<redacted>"
                                     : payload.replace("\r", "\\r").replace("\n", "\\n"));

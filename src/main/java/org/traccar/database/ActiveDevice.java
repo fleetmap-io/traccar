@@ -51,6 +51,10 @@ public class ActiveDevice {
         return supportsLiveCommands;
     }
 
+    public String getProtocolName() {
+        return protocol.getName();
+    }
+
     public void sendCommand(Command command) {
         protocol.sendDataCommand(channel, remoteAddress, command);
     }
