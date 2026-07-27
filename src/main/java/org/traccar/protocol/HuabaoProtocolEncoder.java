@@ -95,6 +95,29 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                     return HuabaoProtocolDecoder.formatMessage(
                             HuabaoProtocolDecoder.MSG_TERMINAL_CONTROL, id, false, data);
                     // return encodeTransparent(id, "AS01BLO0\r\n");
+                case Command.TYPE_VIDEO_START:
+                    String server = command.getString(Command.KEY_SERVER);
+                    int port = command.getInteger(Command.KEY_PORT);
+                    int channel = command.getInteger(Command.KEY_INDEX);
+                    data.writeByte(server.length());
+                    data.writeCharSequence(server, StandardCharsets.US_ASCII);
+                    data.writeShort(port); // TCP port
+                    data.writeShort(0); // UDP port
+                    data.writeByte(channel);
+                    data.writeByte(1); // video only
+                    data.writeByte(0); // main stream
+                    LOGGER.error(
+                            "Huabao video request encoded deviceId={} server={} port={} channel={}",
+                            command.getDeviceId(), server, port, channel);
+                    return HuabaoProtocolDecoder.formatMessage(
+                            HuabaoProtocolDecoder.MSG_VIDEO_REQUEST, id, false, data);
+                case Command.TYPE_VIDEO_STOP:
+                    data.writeByte(command.getInteger(Command.KEY_INDEX));
+                    data.writeByte(0); // close audio and video
+                    data.writeByte(0); // both audio and video
+                    data.writeByte(0); // main stream
+                    return HuabaoProtocolDecoder.formatMessage(
+                            HuabaoProtocolDecoder.MSG_VIDEO_CONTROL, id, false, data);
                 default:
                     return null;
             }
