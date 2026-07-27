@@ -58,6 +58,9 @@ public class CommandsManager  extends ExtendedObjectManager<Command> {
             command = getById(command.getId()).clone();
             command.setDeviceId(deviceId);
         }
+        LOGGER.error(
+                "Command dispatch requested deviceId={} type={} textChannel={}",
+                deviceId, command.getType(), command.getTextChannel());
         if (command.getTextChannel()) {
             Position lastPosition = Context.getIdentityManager().getLastPosition(deviceId);
             String phone = Context.getIdentityManager().getById(deviceId).getPhone();
@@ -77,14 +80,20 @@ public class CommandsManager  extends ExtendedObjectManager<Command> {
             ActiveDevice activeDevice = Context.getConnectionManager().getActiveDevice(deviceId);
             if (activeDevice != null) {
                 if (activeDevice.supportsLiveCommands()) {
+                    LOGGER.error("Command dispatching to active device deviceId={} type={}", deviceId, command.getType());
                     activeDevice.sendCommand(command);
                 } else {
+                    LOGGER.error(
+                            "Command queued because live commands are unsupported deviceId={} type={}",
+                            deviceId, command.getType());
                     getDeviceQueue(deviceId).add(command);
                     return false;
                 }
             } else if (!queueing) {
+                LOGGER.error("Command rejected because device is offline deviceId={} type={}", deviceId, command.getType());
                 throw new RuntimeException("Device is not online");
             } else {
+                LOGGER.error("Command queued because device is offline deviceId={} type={}", deviceId, command.getType());
                 getDeviceQueue(deviceId).add(command);
                 return false;
             }
