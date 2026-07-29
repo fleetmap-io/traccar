@@ -55,6 +55,21 @@ public abstract class SimpleObjectManager<T extends BaseModel> extends BaseObjec
         }
     }
 
+    public final Set<Long> getItemUsers(long itemId) {
+        try {
+            readLock();
+            Set<Long> result = new HashSet<>();
+            for (Map.Entry<Long, Set<Long>> entry : userItems.entrySet()) {
+                if (entry.getValue().contains(itemId)) {
+                    result.add(entry.getKey());
+                }
+            }
+            return result;
+        } finally {
+            readUnlock();
+        }
+    }
+
     @Override
     public Set<Long> getManagedItems(long userId) {
         Set<Long> result = getUserItems(userId);

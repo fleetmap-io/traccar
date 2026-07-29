@@ -86,6 +86,21 @@ public abstract class ExtendedObjectManager<T extends BaseModel> extends SimpleO
         }
     }
 
+    public final Set<Long> getItemDevices(long itemId) {
+        try {
+            readLock();
+            Set<Long> result = new HashSet<>();
+            for (Map.Entry<Long, Set<Long>> entry : deviceItemsWithGroups.entrySet()) {
+                if (entry.getValue().contains(itemId)) {
+                    result.add(entry.getKey());
+                }
+            }
+            return result;
+        } finally {
+            readUnlock();
+        }
+    }
+
     @Override
     public void removeItem(long itemId) throws SQLException {
         super.removeItem(itemId);

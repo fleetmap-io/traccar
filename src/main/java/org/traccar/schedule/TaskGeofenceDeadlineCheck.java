@@ -19,17 +19,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.traccar.Context;
 import org.traccar.model.Event;
+import org.traccar.model.Geofence;
 import org.traccar.model.Notification;
 import org.traccar.model.Position;
 
+import java.sql.SQLException;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -67,60 +74,123 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
                                 notificationId, notification.getString("name"));
                         continue;
                     }
+                    Map<?, ?> timetable = (Map<?, ?>) timetableAttribute;
 
-                    long deadline = getTodayDeadline((Map<?, ?>) timetableAttribute, currentTime);
+                    long deadline = getTodayDeadline(timetable, currentTime);
                     boolean pastDeadline = deadline > 0 && currentTime >= deadline;
                     boolean withinWindow = pastDeadline && currentTime - checkPeriod < deadline;
-                    LOGGER.error(
-                            "Geofence absence notification id={} name={} deadline={} pastDeadline={} "
-                                    + "withinWindow={}",
-                            notificationId,
-                            notification.getString("name"),
-                            deadline > 0 ? Instant.ofEpochMilli(deadline) : null,
-                            pastDeadline,
-                            withinWindow);
 
                     if (withinWindow) {
-                        LOGGER.info(
-                                "Geofence absence deadline passed, notification id={} name={} geofences={}",
+                        long start = getTodayTime(timetable, "startTime", currentTime);
+                        List<Long> geofenceIds = getGeofenceIds(notification);
+
+                        LOGGER.error(
+                                "Geofence absence deadline passed, notification id={} name={} start={} end={} "
+                                        + "geofences={}",
                                 notificationId,
                                 notification.getString("name"),
-                                notification.getAttributes().get("geofences"));
+                                start > 0 ? Instant.ofEpochMilli(start) : null,
+                                Instant.ofEpochMilli(deadline),
+                                geofenceIds);
+
+                        if (start <= 0 || geofenceIds.isEmpty()) {
+                            continue;
+                        }
+
+                        Date from = new Date(start);
+                        Date to = new Date(deadline);
+                        Set<Long> deviceIds;
+                        if (notification.getAlways()) {
+                            deviceIds = new HashSet<>();
+                            for (long userId : Context.getNotificationManager().getItemUsers(notificationId)) {
+                                deviceIds.addAll(Context.getDeviceManager().getAllUserItems(userId));
+                            }
+                        } else {
+                            deviceIds = Context.getNotificationManager().getItemDevices(notificationId);
+                        }
+
+                        for (long deviceId : deviceIds) {
+                            boolean visited = deviceVisitedGeofence(deviceId, geofenceIds, from, to);
+                            if (!visited) {
+                                LOGGER.error(
+                                        "Geofence absence check notification id={} deviceId={} visited=false",
+                                        notificationId, deviceId);
+                                // TODO: raise the alarm event
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
+    private boolean deviceVisitedGeofence(long deviceId, List<Long> geofenceIds, Date from, Date to) {
+        try {
+            for (Position position : Context.getDataManager().getPositions(deviceId, from, to)) {
+                for (long geofenceId : geofenceIds) {
+                    Geofence geofence = Context.getGeofenceManager().getById(geofenceId);
+                    if (geofence != null && geofence.getGeometry()
+                            .containsPoint(position.getLatitude(), position.getLongitude())) {
+                        return true;
+                    }
+                }
+            }
+        } catch (SQLException error) {
+            LOGGER.warn("Error checking geofence visits, deviceId " + deviceId, error);
+        }
+        return false;
+    }
+
+    private List<Long> getGeofenceIds(Notification notification) {
+        List<Long> result = new ArrayList<>();
+        Object geofencesAttribute = notification.getAttributes().get("geofences");
+        if (geofencesAttribute instanceof List) {
+            for (Object item : (List<?>) geofencesAttribute) {
+                if (item instanceof Number) {
+                    result.add(((Number) item).longValue());
+                }
+            }
+        }
+        return result;
+    }
+
     private long getTodayDeadline(Map<?, ?> timetable, long currentTime) {
-        Object endTimeAttribute = timetable.get("endTime");
-        if (!(endTimeAttribute instanceof String)) {
+        if (!isActiveToday(timetable, currentTime)) {
+            return 0;
+        }
+        return getTodayTime(timetable, "endTime", currentTime);
+    }
+
+    private boolean isActiveToday(Map<?, ?> timetable, long currentTime) {
+        boolean allWeek = Boolean.TRUE.equals(timetable.get("allWeek"));
+        if (allWeek) {
+            return true;
+        }
+
+        Object weekDaysAttribute = timetable.get("weekDays");
+        if (!(weekDaysAttribute instanceof Map)) {
+            return false;
+        }
+
+        DayOfWeek today = Instant.ofEpochMilli(currentTime).atZone(TIMETABLE_ZONE).getDayOfWeek();
+        String key = today.toString().toLowerCase(Locale.ROOT);
+        return Boolean.TRUE.equals(((Map<?, ?>) weekDaysAttribute).get(key));
+    }
+
+    private long getTodayTime(Map<?, ?> timetable, String key, long currentTime) {
+        Object timeAttribute = timetable.get(key);
+        if (!(timeAttribute instanceof String)) {
             return 0;
         }
 
-        LocalTime endTime;
+        LocalTime time;
         try {
-            endTime = LocalTime.parse((String) endTimeAttribute);
+            time = LocalTime.parse((String) timeAttribute);
         } catch (DateTimeParseException error) {
             return 0;
         }
 
-        Instant currentInstant = Instant.ofEpochMilli(currentTime);
-        DayOfWeek today = currentInstant.atZone(TIMETABLE_ZONE).getDayOfWeek();
-
-        boolean allWeek = Boolean.TRUE.equals(timetable.get("allWeek"));
-        if (!allWeek) {
-            Object weekDaysAttribute = timetable.get("weekDays");
-            if (!(weekDaysAttribute instanceof Map)) {
-                return 0;
-            }
-            String key = today.toString().toLowerCase(Locale.ROOT);
-            if (!Boolean.TRUE.equals(((Map<?, ?>) weekDaysAttribute).get(key))) {
-                return 0;
-            }
-        }
-
-        return currentInstant.atZone(TIMETABLE_ZONE).toLocalDate().atTime(endTime)
+        return Instant.ofEpochMilli(currentTime).atZone(TIMETABLE_ZONE).toLocalDate().atTime(time)
                 .atZone(TIMETABLE_ZONE).toInstant().toEpochMilli();
     }
 
