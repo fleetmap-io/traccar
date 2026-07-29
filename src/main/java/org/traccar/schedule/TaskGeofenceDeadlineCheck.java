@@ -51,6 +51,8 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
         long currentTime = System.currentTimeMillis();
         long checkPeriod = TimeUnit.MINUTES.toMillis(CHECK_PERIOD_MINUTES);
 
+        LOGGER.error("TaskGeofenceDeadlineCheck run, currentTime={}", Instant.ofEpochMilli(currentTime));
+
         for (long notificationId : Context.getNotificationManager().getAllItems()) {
             Notification notification = Context.getNotificationManager().getById(notificationId);
             if (notification != null && Event.TYPE_ALARM.equals(notification.getType())) {
@@ -60,11 +62,25 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
 
                     Object timetableAttribute = notification.getAttributes().get("timetable");
                     if (!(timetableAttribute instanceof Map)) {
+                        LOGGER.error(
+                                "Geofence absence notification id={} name={} has no valid timetable",
+                                notificationId, notification.getString("name"));
                         continue;
                     }
 
                     long deadline = getTodayDeadline((Map<?, ?>) timetableAttribute, currentTime);
-                    if (deadline > 0 && currentTime >= deadline && currentTime - checkPeriod < deadline) {
+                    boolean pastDeadline = deadline > 0 && currentTime >= deadline;
+                    boolean withinWindow = pastDeadline && currentTime - checkPeriod < deadline;
+                    LOGGER.error(
+                            "Geofence absence notification id={} name={} deadline={} pastDeadline={} "
+                                    + "withinWindow={}",
+                            notificationId,
+                            notification.getString("name"),
+                            deadline > 0 ? Instant.ofEpochMilli(deadline) : null,
+                            pastDeadline,
+                            withinWindow);
+
+                    if (withinWindow) {
                         LOGGER.info(
                                 "Geofence absence deadline passed, notification id={} name={} geofences={}",
                                 notificationId,
