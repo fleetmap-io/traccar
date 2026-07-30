@@ -38,12 +38,64 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class PermissionsManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PermissionsManager.class);
+
+    private static final long PERMISSIONS_REFRESH_INTERVAL = 10000;
+
+    private static class RefreshTask {
+
+        private final Runnable task;
+        private final AtomicLong lastRefresh = new AtomicLong();
+        private final AtomicBoolean pending = new AtomicBoolean();
+        private final AtomicBoolean scheduled = new AtomicBoolean();
+
+        RefreshTask(Runnable task) {
+            this.task = task;
+        }
+
+        public void request() {
+            long currentTime = System.currentTimeMillis();
+            long previousTime = lastRefresh.get();
+            long elapsedTime = currentTime - previousTime;
+            if (elapsedTime < PERMISSIONS_REFRESH_INTERVAL) {
+                pending.set(true);
+                schedule(PERMISSIONS_REFRESH_INTERVAL - elapsedTime);
+                return;
+            }
+            if (!lastRefresh.compareAndSet(previousTime, currentTime)) {
+                return;
+            }
+            pending.set(false);
+            task.run();
+        }
+
+        private void schedule(long delay) {
+            if (scheduled.compareAndSet(false, true)) {
+                CompletableFuture.delayedExecutor(delay, TimeUnit.MILLISECONDS).execute(() -> {
+                    try {
+                        if (pending.compareAndSet(true, false)) {
+                            request();
+                        }
+                    } finally {
+                        scheduled.set(false);
+                        if (pending.get()) {
+                            long elapsedTime = System.currentTimeMillis() - lastRefresh.get();
+                            schedule(Math.max(PERMISSIONS_REFRESH_INTERVAL - elapsedTime, 0));
+                        }
+                    }
+                });
+            }
+        }
+    }
 
     private final DataManager dataManager;
     private final UsersManager usersManager;
@@ -56,6 +108,10 @@ public class PermissionsManager {
     private final Map<Long, Set<Long>> groupDevices = new HashMap<>();
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final RefreshTask deviceAndGroupPermissionsRefresh =
+            new RefreshTask(this::refreshDeviceAndGroupPermissionsInternal);
+    private final RefreshTask extendedPermissionsRefresh =
+            new RefreshTask(this::refreshAllExtendedPermissionsInternal);
 
     public PermissionsManager(DataManager dataManager, UsersManager usersManager) {
         this.dataManager = dataManager;
@@ -133,6 +189,10 @@ public class PermissionsManager {
     }
 
     public final void refreshDeviceAndGroupPermissions() {
+        deviceAndGroupPermissionsRefresh.request();
+    }
+
+    private void refreshDeviceAndGroupPermissionsInternal() {
         lock.writeLock().lock();
         try {
             groupPermissions.clear();
@@ -394,6 +454,10 @@ public class PermissionsManager {
     }
 
     public void refreshAllExtendedPermissions() {
+        extendedPermissionsRefresh.request();
+    }
+
+    private void refreshAllExtendedPermissionsInternal() {
         if (Context.getGeofenceManager() != null) {
             Context.getGeofenceManager().refreshExtendedPermissions();
         }
