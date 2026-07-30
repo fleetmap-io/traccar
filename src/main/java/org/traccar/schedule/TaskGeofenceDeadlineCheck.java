@@ -113,15 +113,21 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
                             boolean visited = deviceVisitedGeofence(deviceId, geofenceIds, from, to);
                             if (!visited) {
                                 LOGGER.error(
-                                        "Geofence absence check notification id={} deviceId={} visited=false",
+                                        "Geofence absence send alarm id={} deviceId={} visited=false",
                                         notificationId, deviceId);
                                 // TODO: raise the alarm event
+                            } else {
+                                LOGGER.error(
+                                        "Geofence OK id={} deviceId={} visited=false",
+                                        notificationId, deviceId);
                             }
                         }
                     }
                 }
             }
         }
+
+        LOGGER.error("TaskGeofenceDeadlineCheck end, currentTime={}", Instant.ofEpochMilli(currentTime));
     }
 
     private boolean deviceVisitedGeofence(long deviceId, List<Long> geofenceIds, Date from, Date to) {
