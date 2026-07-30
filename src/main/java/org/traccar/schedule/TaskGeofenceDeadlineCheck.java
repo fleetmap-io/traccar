@@ -32,6 +32,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -60,6 +61,8 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
 
         LOGGER.error("TaskGeofenceDeadlineCheck run, currentTime={}", Instant.ofEpochMilli(currentTime));
 
+        Map<Event, Position> events = new HashMap<>();
+
         for (long notificationId : Context.getNotificationManager().getAllItems()) {
             Notification notification = Context.getNotificationManager().getById(notificationId);
             if (notification != null && Event.TYPE_ALARM.equals(notification.getType())) {
@@ -84,15 +87,6 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
                         long start = getTodayTime(timetable, "startTime", currentTime);
                         List<Long> geofenceIds = getGeofenceIds(notification);
 
-                        LOGGER.error(
-                                "Geofence absence deadline passed, notification id={} name={} start={} end={} "
-                                        + "geofences={}",
-                                notificationId,
-                                notification.getString("name"),
-                                start > 0 ? Instant.ofEpochMilli(start) : null,
-                                Instant.ofEpochMilli(deadline),
-                                geofenceIds);
-
                         if (start <= 0 || geofenceIds.isEmpty()) {
                             continue;
                         }
@@ -110,16 +104,21 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
                         }
 
                         for (long deviceId : deviceIds) {
-                            boolean visited = deviceVisitedGeofence(deviceId, geofenceIds, from, to);
-                            if (!visited) {
-                                LOGGER.error(
-                                        "Geofence absence send alarm id={} deviceId={} visited=false",
-                                        notificationId, deviceId);
-                                // TODO: raise the alarm event
-                            } else {
-                                LOGGER.error(
-                                        "Geofence OK id={} deviceId={} visited=false",
-                                        notificationId, deviceId);
+                            Set<Long> visitedGeofences = getVisitedGeofences(deviceId, geofenceIds, from, to);
+                            for (long geofenceId : geofenceIds) {
+                                if (!visitedGeofences.contains(geofenceId)) {
+                                    LOGGER.error(
+                                            "Geofence absence create event id={} deviceId={} geofenceId={}",
+                                            notificationId, deviceId, geofenceId);
+                                    Event event = new Event(Event.TYPE_ALARM, deviceId);
+                                    event.set(Position.KEY_ALARM, Position.ALARM_GEOFENCE_ABSENCE);
+                                    event.setGeofenceId(geofenceId);
+                                    events.put(event, null);
+                                } else {
+                                    LOGGER.error(
+                                            "Geofence visited id={} deviceId={} geofenceId={}",
+                                            notificationId, deviceId, geofenceId);
+                                }
                             }
                         }
                     }
@@ -127,24 +126,31 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
             }
         }
 
-        LOGGER.error("TaskGeofenceDeadlineCheck end, currentTime={}", Instant.ofEpochMilli(currentTime));
+        if (!events.isEmpty()) {
+            Context.getNotificationManager().updateEvents(events);
+        }
+
     }
 
-    private boolean deviceVisitedGeofence(long deviceId, List<Long> geofenceIds, Date from, Date to) {
+    private Set<Long> getVisitedGeofences(long deviceId, List<Long> geofenceIds, Date from, Date to) {
+        Set<Long> visited = new HashSet<>();
         try {
             for (Position position : Context.getDataManager().getPositions(deviceId, from, to)) {
                 for (long geofenceId : geofenceIds) {
+                    if (visited.contains(geofenceId)) {
+                        continue;
+                    }
                     Geofence geofence = Context.getGeofenceManager().getById(geofenceId);
                     if (geofence != null && geofence.getGeometry()
                             .containsPoint(position.getLatitude(), position.getLongitude())) {
-                        return true;
+                        visited.add(geofenceId);
                     }
                 }
             }
         } catch (SQLException error) {
             LOGGER.warn("Error checking geofence visits, deviceId " + deviceId, error);
         }
-        return false;
+        return visited;
     }
 
     private List<Long> getGeofenceIds(Notification notification) {
