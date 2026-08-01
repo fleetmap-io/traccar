@@ -144,11 +144,11 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                     return HuabaoProtocolDecoder.formatMessage(
                             HuabaoProtocolDecoder.MSG_VIDEO_LIST, id, false, data);
                 case Command.TYPE_VIDEO_PLAYBACK:
-                    server = command.getString(Command.KEY_SERVER);
-                    port = command.getInteger(Command.KEY_PORT);
-                    data.writeByte(server.length());
-                    data.writeCharSequence(server, StandardCharsets.US_ASCII);
-                    data.writeShort(port);
+                    String playbackServer = command.getString(Command.KEY_SERVER);
+                    int playbackPort = command.getInteger(Command.KEY_PORT);
+                    data.writeByte(playbackServer.length());
+                    data.writeCharSequence(playbackServer, StandardCharsets.US_ASCII);
+                    data.writeShort(playbackPort);
                     data.writeShort(0);
                     data.writeByte(command.getInteger(Command.KEY_INDEX));
                     data.writeByte(2); // audio and video
