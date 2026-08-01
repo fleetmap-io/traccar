@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.Unpooled;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.traccar.ProtocolTest;
@@ -18,6 +19,17 @@ public class HuabaoProtocolEncoderTest extends ProtocolTest {
             assertEquals("4e3a0b712725", ByteBufUtil.hexDump(id));
         } finally {
             id.release();
+        }
+    }
+
+    @Test
+    public void testEncodeVideoRequestIncludesAudio() {
+        ByteBuf data = Unpooled.buffer();
+        try {
+            HuabaoProtocolEncoder.encodeVideoRequestData(data, "media.example", 10002, 2);
+            assertEquals("0d6d656469612e6578616d706c6527120000020000", ByteBufUtil.hexDump(data));
+        } finally {
+            data.release();
         }
     }
 

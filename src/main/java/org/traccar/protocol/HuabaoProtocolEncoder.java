@@ -68,6 +68,16 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
         data.writeBytes(DataConverter.parseHex(dateFormat.format(date)));
     }
 
+    static void encodeVideoRequestData(ByteBuf data, String server, int port, int channel) {
+        data.writeByte(server.length());
+        data.writeCharSequence(server, StandardCharsets.US_ASCII);
+        data.writeShort(port); // TCP port
+        data.writeShort(0); // UDP port
+        data.writeByte(channel);
+        data.writeByte(0); // audio and video
+        data.writeByte(0); // main stream
+    }
+
     @Override
     protected Object encodeCommand(Command command) {
         String uniqueId = getUniqueId(command.getDeviceId());
@@ -110,13 +120,7 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                     String server = command.getString(Command.KEY_SERVER);
                     int port = command.getInteger(Command.KEY_PORT);
                     int channel = command.getInteger(Command.KEY_INDEX);
-                    data.writeByte(server.length());
-                    data.writeCharSequence(server, StandardCharsets.US_ASCII);
-                    data.writeShort(port); // TCP port
-                    data.writeShort(0); // UDP port
-                    data.writeByte(channel);
-                    data.writeByte(1); // video only
-                    data.writeByte(0); // main stream
+                    encodeVideoRequestData(data, server, port, channel);
                     LOGGER.error(
                             "Huabao video request encoded deviceId={} server={} port={} channel={}",
                             command.getDeviceId(), server, port, channel);
