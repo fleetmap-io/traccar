@@ -335,7 +335,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
             sendGeneralResponse(channel, remoteAddress, id, type, index);
 
-            return decodeLocation(deviceSession, buf);
+            return decodeLocation(deviceSession, buf, type);
 
         } else if (type == MSG_LOCATION_REPORT_2 || type == MSG_LOCATION_REPORT_BLIND) {
 
@@ -583,10 +583,11 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         return sign * (Math.abs(b1) + b2 / 255.0);
     }
 
-    private Position decodeLocation(DeviceSession deviceSession, ByteBuf buf) {
+    private Position decodeLocation(DeviceSession deviceSession, ByteBuf buf, int type) {
 
         Position position = new Position(getProtocolName());
         position.setDeviceId(deviceSession.getDeviceId());
+        position.set(Position.KEY_TYPE, type);
 
         position.set(Position.KEY_ALARM, decodeAlarm(buf.readUnsignedInt()));
 
@@ -980,6 +981,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
         Position position = new Position(getProtocolName());
         position.setDeviceId(deviceSession.getDeviceId());
+        position.set(Position.KEY_TYPE, type);
 
         Jt600ProtocolDecoder.decodeBinaryLocation(buf, position);
         position.setValid(type != MSG_LOCATION_REPORT_BLIND);
@@ -1099,7 +1101,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         while (buf.readableBytes() > 2) {
             int length = type == MSG_LOCATION_BATCH_2 ? buf.readUnsignedByte() : buf.readUnsignedShort();
             ByteBuf fragment = buf.readSlice(length);
-            Position position = decodeLocation(deviceSession, fragment);
+            Position position = decodeLocation(deviceSession, fragment, type);
             if (locationType > 0) {
                 position.set(Position.KEY_ARCHIVE, true);
             }
