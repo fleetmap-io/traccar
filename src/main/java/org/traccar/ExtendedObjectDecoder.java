@@ -35,7 +35,7 @@ public abstract class ExtendedObjectDecoder extends ChannelInboundHandlerAdapter
             Position position = (Position) decodedMessage;
             if (originalMessage instanceof ByteBuf) {
                 ByteBuf buf = (ByteBuf) originalMessage;
-                position.set(Position.KEY_ORIGINAL, ByteBufUtil.hexDump(buf));
+                position.set(Position.KEY_ORIGINAL, ByteBufUtil.hexDump(buf, 0, buf.writerIndex()));
             } else if (originalMessage instanceof String) {
                 position.set(Position.KEY_ORIGINAL, DataConverter.printHex(
                                 ((String) originalMessage).getBytes(StandardCharsets.US_ASCII)));
