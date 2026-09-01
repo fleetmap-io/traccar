@@ -61,11 +61,21 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
         return Unpooled.wrappedBuffer(DataConverter.parseHex(uniqueId));
     }
 
-    private void writeDate(ByteBuf data, String value) {
+    private static void writeDate(ByteBuf data, String value) {
         Date date = DateUtil.parseDate(value);
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyMMddHHmmss");
         dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         data.writeBytes(DataConverter.parseHex(dateFormat.format(date)));
+    }
+
+    static void encodeVideoListData(ByteBuf data, int channel, String startTime, String endTime, long alarmFlag) {
+        data.writeByte(channel); // logical channel, 0 = all channels
+        writeDate(data, startTime);
+        writeDate(data, endTime);
+        data.writeLong(alarmFlag); // 0 = all alarm types, otherwise a JT/T 1078 alarm bitmask
+        data.writeByte(2); // audio and video
+        data.writeByte(0); // all stream types
+        data.writeByte(0); // all storage types
     }
 
     static void encodeVideoRequestData(ByteBuf data, String server, int port, int channel) {
@@ -134,13 +144,12 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                     return HuabaoProtocolDecoder.formatMessage(
                             HuabaoProtocolDecoder.MSG_VIDEO_CONTROL, id, false, data);
                 case Command.TYPE_VIDEO_LIST:
-                    data.writeByte(command.getInteger(Command.KEY_INDEX));
-                    writeDate(data, command.getString(Command.KEY_START_TIME));
-                    writeDate(data, command.getString(Command.KEY_END_TIME));
-                    data.writeLong(0); // all alarm types
-                    data.writeByte(2); // audio and video
-                    data.writeByte(0); // all stream types
-                    data.writeByte(0); // all storage types
+                    encodeVideoListData(
+                            data,
+                            command.getInteger(Command.KEY_INDEX),
+                            command.getString(Command.KEY_START_TIME),
+                            command.getString(Command.KEY_END_TIME),
+                            command.getLong(Command.KEY_ALARM_FLAG));
                     return HuabaoProtocolDecoder.formatMessage(
                             HuabaoProtocolDecoder.MSG_VIDEO_LIST, id, false, data);
                 case Command.TYPE_VIDEO_PLAYBACK:

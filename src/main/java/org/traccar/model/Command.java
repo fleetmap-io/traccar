@@ -85,6 +85,7 @@ public class Command extends Message implements Cloneable {
     public static final String KEY_PORT = "port";
     public static final String KEY_START_TIME = "startTime";
     public static final String KEY_END_TIME = "endTime";
+    public static final String KEY_ALARM_FLAG = "alarmFlag";
 
     @Override
     public Command clone() throws CloneNotSupportedException {
