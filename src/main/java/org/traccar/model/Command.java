@@ -85,6 +85,7 @@ public class Command extends Message implements Cloneable {
     public static final String KEY_PORT = "port";
     public static final String KEY_START_TIME = "startTime";
     public static final String KEY_END_TIME = "endTime";
+    public static final String KEY_ALARM_FLAG = "alarmFlag";
     public static final String KEY_RESOURCE_TYPE = "resourceType";
     public static final String KEY_STREAM_TYPE = "streamType";
     public static final String KEY_STORAGE_TYPE = "storageType";

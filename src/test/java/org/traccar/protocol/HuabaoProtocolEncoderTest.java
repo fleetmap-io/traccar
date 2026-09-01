@@ -33,6 +33,30 @@ public class HuabaoProtocolEncoderTest extends ProtocolTest {
         }
     }
 
+    @Test
+    public void testEncodeVideoListNoAlarmFilter() {
+        ByteBuf data = Unpooled.buffer();
+        try {
+            HuabaoProtocolEncoder.encodeVideoListData(
+                    data, 0, "2026-08-31T09:29:16.000Z", "2026-08-31T09:29:36.000Z", 0);
+            assertEquals("002608310929162608310929360000000000000000020000", ByteBufUtil.hexDump(data));
+        } finally {
+            data.release();
+        }
+    }
+
+    @Test
+    public void testEncodeVideoListWithAlarmFilter() {
+        ByteBuf data = Unpooled.buffer();
+        try {
+            HuabaoProtocolEncoder.encodeVideoListData(
+                    data, 3, "2026-08-31T09:29:16.000Z", "2026-08-31T09:29:36.000Z", 0x100000000L);
+            assertEquals("032608310929162608310929360000000100000000020000", ByteBufUtil.hexDump(data));
+        } finally {
+            data.release();
+        }
+    }
+
     @Ignore
     @Test
     public void testEncode() throws Exception {
