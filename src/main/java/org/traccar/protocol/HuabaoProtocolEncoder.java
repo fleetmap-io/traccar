@@ -160,9 +160,9 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                     data.writeShort(playbackPort);
                     data.writeShort(0);
                     data.writeByte(command.getInteger(Command.KEY_INDEX));
-                    data.writeByte(2); // audio and video
-                    data.writeByte(0); // main or sub stream
-                    data.writeByte(0); // device storage
+                    data.writeByte(command.getInteger(Command.KEY_RESOURCE_TYPE));
+                    data.writeByte(command.getInteger(Command.KEY_STREAM_TYPE));
+                    data.writeByte(command.getInteger(Command.KEY_STORAGE_TYPE));
                     data.writeByte(0); // normal playback
                     data.writeByte(0); // normal speed
                     writeDate(data, command.getString(Command.KEY_START_TIME));
