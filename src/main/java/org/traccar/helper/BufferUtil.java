@@ -44,4 +44,16 @@ public final class BufferUtil {
         return result < 0 ? result : haystack.readerIndex() + result;
     }
 
+    public static boolean isPrintable(ByteBuf buf, int length) {
+        boolean printable = true;
+        for (int i = 0; i < length; i++) {
+            byte b = buf.getByte(buf.readerIndex() + i);
+            if (b < 32 && b != '\r' && b != '\n') {
+                printable = false;
+                break;
+            }
+        }
+        return printable;
+    }
+
 }

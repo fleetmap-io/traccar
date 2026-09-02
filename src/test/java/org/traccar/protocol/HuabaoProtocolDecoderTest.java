@@ -129,6 +129,25 @@ public class HuabaoProtocolDecoderTest extends ProtocolTest {
         verifyPosition(decoder, binary(
                 "7e020000220014012499170007000000000000400e012af16f02cbd2ba000000000000150101194257010400000077a97e"));
 
+        verifyAttribute(decoder, binary(
+                "7e020000200135112211220007000000000000000002625a00007a1200000000000000250902120000820200dc237e"),
+                Position.KEY_POWER, 22.0);
+
+        verifyAttribute(decoder, binary(
+                "7e020000200135112211220008000000000000000002625a00007a1200000000000000250902120000e10200891a7e"),
+                Position.KEY_POWER, 13.7);
+
+        verifyAttribute(decoder, binary(
+                "7e020000260135112211220009000000000000000002625a00007a1200000000000000250902120000"
+                        + "eb080006002d000035e8627e"),
+                Position.KEY_POWER, 13.8);
+
+        verifyAttribute(decoder, binary(
+                "7e0200006a4eb6fb4ad8e2002e00000000004c000f015da88d02b57bb6021e007d00b426090217080201"
+                        + "040000000025040000000030011f310112eb095554432d30333a3030642f00000000000401000000"
+                        + "000007021e015da8a802b57bb62609021708020400000000000000002609021708020007007c7e"),
+                "timezone", "UTC-03:00");
+
     }
 
 }
