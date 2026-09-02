@@ -25,6 +25,7 @@ import org.traccar.NetworkMessage;
 import org.traccar.Protocol;
 import org.traccar.helper.BcdUtil;
 import org.traccar.helper.BitUtil;
+import org.traccar.helper.BufferUtil;
 import org.traccar.helper.Checksum;
 import org.traccar.helper.DateBuilder;
 import org.traccar.helper.UnitsConverter;
@@ -719,6 +720,9 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                     endIndex = buf.writerIndex() - 2;
                     decodeExtension(position, buf, endIndex);
                     break;
+                case 0x82:
+                    position.set(Position.KEY_POWER, buf.readUnsignedShort() * 0.1);
+                    break;
                 case 0x91:
                     position.set(Position.KEY_BATTERY, buf.readUnsignedShort() * 0.1);
                     position.set(Position.KEY_RPM, buf.readUnsignedShort());
@@ -767,6 +771,8 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                 case 0xE1:
                     if (length == 1) {
                         position.set(Position.KEY_BATTERY_LEVEL, buf.readUnsignedByte());
+                    } else if (subtype == 0xE1 && length == 2) {
+                        position.set(Position.KEY_POWER, buf.readUnsignedShort() * 0.1);
                     } else {
                         position.set(Position.KEY_DRIVER_UNIQUE_ID, String.valueOf(buf.readUnsignedInt()));
                     }
@@ -804,7 +810,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                     }
                     break;
                 case 0xEB:
-                    if (buf.getUnsignedShort(buf.readerIndex()) > 200) {
+                    if (buf.getUnsignedShort(buf.readerIndex()) > 200 && (length - 3) % 5 == 0) {
                         Network network = new Network();
                         int mcc = buf.readUnsignedShort();
                         int mnc = buf.readUnsignedByte();
@@ -814,6 +820,8 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                                     buf.readUnsignedByte()));
                         }
                         position.setNetwork(network);
+                    } else if (BufferUtil.isPrintable(buf, length)) {
+                        position.set("timezone", buf.readCharSequence(length, StandardCharsets.US_ASCII).toString());
                     } else {
                         while (buf.readerIndex() < endIndex) {
                             int extendedLength = buf.readUnsignedShort();
@@ -826,6 +834,13 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                                 case 0x0023:
                                     position.set("fuel2", Double.parseDouble(
                                             buf.readCharSequence(6, StandardCharsets.US_ASCII).toString()));
+                                    break;
+                                case 0x002D:
+                                    if (extendedLength == 6) {
+                                        position.set(Position.KEY_POWER, buf.readUnsignedInt() * 0.001);
+                                    } else {
+                                        position.set(Position.KEY_BATTERY, buf.readUnsignedShort() * 0.001);
+                                    }
                                     break;
                                 case 0x00B2:
                                     position.set(Position.KEY_ICCID, ByteBufUtil.hexDump(
