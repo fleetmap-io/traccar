@@ -70,6 +70,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_LOCATION_BATCH = 0x0704;
     public static final int MSG_TIME_SYNC_REQUEST = 0x0109;
     public static final int MSG_PHOTO = 0x8888;
+    public static final int MSG_MULTIMEDIA_EVENT = 0x0800;
     public static final int MSG_TRANSPARENT = 0x0900;
     public static final int MSG_TRANSPARENT_DOWNLINK = 0x8900;
     public static final int MSG_REPORT_TEXT_MESSAGE = 0x6006;
@@ -337,6 +338,12 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             sendGeneralResponse(channel, remoteAddress, id, type, index);
 
             return decodeLocation(deviceSession, buf, type);
+
+        } else if (type == MSG_MULTIMEDIA_EVENT) {
+
+            sendGeneralResponse(channel, remoteAddress, id, type, index);
+
+            return decodeMultimediaEvent(deviceSession, buf);
 
         } else if (type == MSG_LOCATION_REPORT_2 || type == MSG_LOCATION_REPORT_BLIND) {
 
@@ -988,6 +995,29 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             }
             buf.readerIndex(endIndex);
         }
+
+        return position;
+    }
+
+    private Position decodeMultimediaEvent(DeviceSession deviceSession, ByteBuf buf) {
+
+        Position position = new Position(getProtocolName());
+        position.setDeviceId(deviceSession.getDeviceId());
+
+        position.set("mediaId", buf.readUnsignedInt());
+        position.set("mediaType", buf.readUnsignedByte());
+        position.set("mediaFormat", buf.readUnsignedByte());
+        position.set("mediaEvent", buf.readUnsignedByte());
+        position.set("mediaChannel", buf.readUnsignedByte());
+
+        position.set(Position.KEY_ALARM, decodeAlarm(buf.readUnsignedInt()));
+
+        decodeCoordinates(position, buf);
+
+        position.setAltitude(buf.readShort());
+        position.setSpeed(UnitsConverter.knotsFromKph(buf.readUnsignedShort() * 0.1));
+        position.setCourse(buf.readUnsignedShort());
+        position.setTime(readDate(buf, deviceSession.get(DeviceSession.KEY_TIMEZONE)));
 
         return position;
     }
