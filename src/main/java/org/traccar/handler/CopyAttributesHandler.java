@@ -35,7 +35,7 @@ public class CopyAttributesHandler extends BaseDataHandler {
         String attributesString = identityManager.lookupAttributeString(
                 position.getDeviceId(), "processing.copyAttributes", "", false, true);
         Position last = identityManager.getLastPosition(position.getDeviceId());
-        if (last != null) {
+        if (last != null && !position.getFixTime().before(last.getFixTime())) {
             for (String attribute : attributesString.split("[ ,]")) {
                 if (last.getAttributes().containsKey(attribute) && !position.getAttributes().containsKey(attribute)) {
                     position.getAttributes().put(attribute, last.getAttributes().get(attribute));
