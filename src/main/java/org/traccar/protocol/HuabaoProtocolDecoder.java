@@ -1004,11 +1004,22 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         Position position = new Position(getProtocolName());
         position.setDeviceId(deviceSession.getDeviceId());
 
-        position.set("mediaId", buf.readUnsignedInt());
-        position.set("mediaType", buf.readUnsignedByte());
-        position.set("mediaFormat", buf.readUnsignedByte());
-        position.set("mediaEvent", buf.readUnsignedByte());
-        position.set("mediaChannel", buf.readUnsignedByte());
+        long mediaId = buf.readUnsignedInt();
+        int mediaType = buf.readUnsignedByte();
+        int mediaFormat = buf.readUnsignedByte();
+        int mediaEvent = buf.readUnsignedByte();
+        int mediaChannel = buf.readUnsignedByte();
+
+        LOGGER.error(
+                "Huabao multimedia event deviceId={} message=0x0800 mediaId={} mediaType={} mediaFormat={} "
+                        + "mediaEvent={} mediaChannel={}",
+                deviceSession.getDeviceId(), mediaId, mediaType, mediaFormat, mediaEvent, mediaChannel);
+
+        position.set("mediaId", mediaId);
+        position.set("mediaType", mediaType);
+        position.set("mediaFormat", mediaFormat);
+        position.set("mediaEvent", mediaEvent);
+        position.set("mediaChannel", mediaChannel);
 
         position.set(Position.KEY_ALARM, decodeAlarm(buf.readUnsignedInt()));
 
@@ -1403,6 +1414,10 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             return position;
 
         }
+
+        LOGGER.error(
+                "Huabao unhandled message deviceId={} message=0x{}",
+                deviceSession.getDeviceId(), Integer.toHexString(type).toUpperCase());
 
         return null;
     }
