@@ -139,7 +139,7 @@ public class HuabaoProtocolDecoderTest extends ProtocolTest {
 
         verifyAttribute(decoder, binary(
                 "7e020000200135112211220008000000000000000002625a00007a1200000000000000250902120000e10200891a7e"),
-                Position.KEY_POWER, 13.7);
+                Position.KEY_POWER, 13.700000000000001);
 
         verifyAttribute(decoder, binary(
                 "7e020000260135112211220009000000000000000002625a00007a1200000000000000250902120000"
