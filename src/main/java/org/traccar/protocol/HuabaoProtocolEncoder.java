@@ -169,6 +169,10 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                     writeDate(data, command.getString(Command.KEY_END_TIME));
                     return HuabaoProtocolDecoder.formatMessage(
                             HuabaoProtocolDecoder.MSG_VIDEO_PLAYBACK, id, false, data);
+                case Command.TYPE_GET_DEVICE_STATUS:
+                    // 0x8104 query all terminal parameters, empty body; device replies with 0x0104
+                    return HuabaoProtocolDecoder.formatMessage(
+                            HuabaoProtocolDecoder.MSG_QUERY_PARAMETERS, id, false, data);
                 default:
                     return null;
             }
