@@ -46,6 +46,10 @@ public class HuabaoProtocolDecoderTest extends ProtocolTest {
                 "mediaEvent", 3);
 
         verifyAttribute(decoder, binary(
+                "7e01040015013345678906000100010200000001040000003c0000001804000027109f7e"),
+                "parameters", "{\"0x1\":\"0000003c\",\"0x18\":\"00002710\"}");
+
+        verifyAttribute(decoder, binary(
                 "7e550104337401903111850622072002454206133574075359513a0000080100000001aa00005ded05e203000000000c06005affb5ffb40a0302dc65100100137e"),
                 Position.KEY_CHARGE, true);
 

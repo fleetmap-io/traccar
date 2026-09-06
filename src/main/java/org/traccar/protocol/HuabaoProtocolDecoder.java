@@ -82,6 +82,8 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_VIDEO_PLAYBACK = 0x9201;
     public static final int MSG_VIDEO_LIST = 0x9205;
     public static final int MSG_VIDEO_LIST_RESPONSE = 0x1205;
+    public static final int MSG_QUERY_PARAMETERS = 0x8104;
+    public static final int MSG_PARAMETERS_RESPONSE = 0x0104;
 
     public static final int RESULT_SUCCESS = 0;
 
@@ -316,6 +318,38 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             if (!fragmented) {
                 sendGeneralResponse(channel, remoteAddress, id, type, index);
             }
+            return position;
+
+        } else if (type == MSG_PARAMETERS_RESPONSE) {
+
+            buf.readUnsignedShort(); // response serial number
+            int count = buf.readUnsignedByte();
+
+            Position position = new Position(getProtocolName());
+            position.setDeviceId(deviceSession.getDeviceId());
+            getLastLocation(position, null);
+
+            StringBuilder parameters = new StringBuilder("{");
+            for (int i = 0; i < count && buf.readableBytes() >= 5; i++) {
+                long parameterId = buf.readUnsignedInt();
+                int parameterLength = buf.readUnsignedByte();
+                if (buf.readableBytes() < parameterLength) {
+                    break;
+                }
+                String value = ByteBufUtil.hexDump(buf.readSlice(parameterLength));
+                if (i > 0) {
+                    parameters.append(',');
+                }
+                parameters.append("\"0x").append(Long.toHexString(parameterId)).append("\":\"");
+                parameters.append(value).append('"');
+                LOGGER.error(
+                        "Huabao terminal parameter deviceId={} id=0x{} length={} value={}",
+                        deviceSession.getDeviceId(), Long.toHexString(parameterId), parameterLength, value);
+            }
+            parameters.append('}');
+
+            position.set("parameters", parameters.toString());
+            sendGeneralResponse(channel, remoteAddress, id, type, index);
             return position;
 
         } else if (type == MSG_TERMINAL_REGISTER) {
