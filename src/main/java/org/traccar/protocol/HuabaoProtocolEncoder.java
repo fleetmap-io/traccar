@@ -180,18 +180,22 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                     // 0x8104 query all terminal parameters, empty body; device replies with 0x0104
                     return HuabaoProtocolDecoder.formatMessage(
                             HuabaoProtocolDecoder.MSG_QUERY_PARAMETERS, id, false, data);
-                case Command.TYPE_CONFIGURATION: {
+                case Command.TYPE_GET_VERSION:
+                    // 0x8107 query terminal attributes, empty body; device replies with 0x0107
+                    return HuabaoProtocolDecoder.formatMessage(
+                            HuabaoProtocolDecoder.MSG_QUERY_ATTRIBUTES, id, false, data);
+                case Command.TYPE_CONFIGURATION:
                     // 0x8103 set terminal parameters, single entry:
                     // count(1) + parameter id(4) + parameter length(1) + value(length)
                     int parameterId = command.getInteger(Command.KEY_INDEX);
-                    byte[] value = DataConverter.parseHex(command.getString(Command.KEY_DATA));
-                    encodeSetParameterData(data, parameterId, value);
+                    byte[] parameterValue = DataConverter.parseHex(command.getString(Command.KEY_DATA));
+                    encodeSetParameterData(data, parameterId, parameterValue);
                     LOGGER.error(
                             "Huabao set parameter encoded deviceId={} id=0x{} length={}",
-                            command.getDeviceId(), Integer.toHexString(parameterId).toUpperCase(), value.length);
+                            command.getDeviceId(), Integer.toHexString(parameterId).toUpperCase(),
+                            parameterValue.length);
                     return HuabaoProtocolDecoder.formatMessage(
                             HuabaoProtocolDecoder.MSG_SET_PARAMETERS, id, false, data);
-                }
                 default:
                     return null;
             }

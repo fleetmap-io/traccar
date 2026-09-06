@@ -50,6 +50,11 @@ public class HuabaoProtocolDecoderTest extends ProtocolTest {
                 "parameters", "{\"0x1\":\"0000003c\",\"0x18\":\"00002710\"}");
 
         verifyAttribute(decoder, binary(
+                "7e01070038013345678906000100404a494d49004a433435300000000000000000000000000000003030303030303189"
+                        + "86000000000000000103312e3005322e332e310000f97e"),
+                Position.KEY_VERSION_FW, "2.3.1");
+
+        verifyAttribute(decoder, binary(
                 "7e550104337401903111850622072002454206133574075359513a0000080100000001aa00005ded05e203000000000c06005affb5ffb40a0302dc65100100137e"),
                 Position.KEY_CHARGE, true);
 
