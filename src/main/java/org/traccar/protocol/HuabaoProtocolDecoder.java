@@ -82,6 +82,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_VIDEO_PLAYBACK = 0x9201;
     public static final int MSG_VIDEO_LIST = 0x9205;
     public static final int MSG_VIDEO_LIST_RESPONSE = 0x1205;
+    public static final int MSG_SET_PARAMETERS = 0x8103;
     public static final int MSG_QUERY_PARAMETERS = 0x8104;
     public static final int MSG_PARAMETERS_RESPONSE = 0x0104;
 
@@ -274,7 +275,8 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                     || responseType == MSG_VIDEO_REQUEST
                     || responseType == MSG_VIDEO_CONTROL
                     || responseType == MSG_VIDEO_PLAYBACK
-                    || responseType == MSG_VIDEO_LIST) {
+                    || responseType == MSG_VIDEO_LIST
+                    || responseType == MSG_SET_PARAMETERS) {
                 Position position = new Position(getProtocolName());
                 position.setDeviceId(deviceSession.getDeviceId());
                 getLastLocation(position, null);

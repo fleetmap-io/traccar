@@ -57,6 +57,18 @@ public class HuabaoProtocolEncoderTest extends ProtocolTest {
         }
     }
 
+    @Test
+    public void testEncodeSetParameter() {
+        ByteBuf data = Unpooled.buffer();
+        try {
+            HuabaoProtocolEncoder.encodeSetParameterData(
+                    data, 0x0079, ByteBufUtil.decodeHexDump("ffffff"));
+            assertEquals("010000007903ffffff", ByteBufUtil.hexDump(data));
+        } finally {
+            data.release();
+        }
+    }
+
     @Ignore
     @Test
     public void testEncode() throws Exception {

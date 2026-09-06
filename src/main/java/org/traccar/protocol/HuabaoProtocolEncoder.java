@@ -78,6 +78,13 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
         data.writeByte(0); // all storage types
     }
 
+    static void encodeSetParameterData(ByteBuf data, int parameterId, byte[] value) {
+        data.writeByte(1); // one parameter
+        data.writeInt(parameterId);
+        data.writeByte(value.length);
+        data.writeBytes(value);
+    }
+
     static void encodeVideoRequestData(ByteBuf data, String server, int port, int channel) {
         data.writeByte(server.length());
         data.writeCharSequence(server, StandardCharsets.US_ASCII);
@@ -173,6 +180,18 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                     // 0x8104 query all terminal parameters, empty body; device replies with 0x0104
                     return HuabaoProtocolDecoder.formatMessage(
                             HuabaoProtocolDecoder.MSG_QUERY_PARAMETERS, id, false, data);
+                case Command.TYPE_CONFIGURATION: {
+                    // 0x8103 set terminal parameters, single entry:
+                    // count(1) + parameter id(4) + parameter length(1) + value(length)
+                    int parameterId = command.getInteger(Command.KEY_INDEX);
+                    byte[] value = DataConverter.parseHex(command.getString(Command.KEY_DATA));
+                    encodeSetParameterData(data, parameterId, value);
+                    LOGGER.error(
+                            "Huabao set parameter encoded deviceId={} id=0x{} length={}",
+                            command.getDeviceId(), Integer.toHexString(parameterId).toUpperCase(), value.length);
+                    return HuabaoProtocolDecoder.formatMessage(
+                            HuabaoProtocolDecoder.MSG_SET_PARAMETERS, id, false, data);
+                }
                 default:
                     return null;
             }
