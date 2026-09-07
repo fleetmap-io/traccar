@@ -1292,6 +1292,21 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
         } else if (type == 0xF0) {
 
+            if (buf.readableBytes() > 2 && BufferUtil.isPrintable(buf, buf.readableBytes() - 2)) {
+                Position position = new Position(getProtocolName());
+                position.setDeviceId(deviceSession.getDeviceId());
+                getLastLocation(position, null);
+                String result = buf.readCharSequence(
+                        buf.readableBytes() - 2, StandardCharsets.US_ASCII).toString().trim();
+                LOGGER.error(
+                        "Huabao transparent text deviceId={} result={}",
+                        deviceSession.getDeviceId(), result.replace("\r", "\\r").replace("\n", "\\n"));
+                if (!result.isEmpty()) {
+                    position.set(Position.KEY_RESULT, result);
+                }
+                return position.getAttributes().isEmpty() ? null : position;
+            }
+
             Position position = new Position(getProtocolName());
             position.setDeviceId(deviceSession.getDeviceId());
 
