@@ -399,6 +399,20 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
         } else if (type == MSG_TERMINAL_REGISTER) {
 
+            if (bodyLength >= 29) {
+                int available = Math.min(bodyLength, buf.readableBytes());
+                byte[] registration = ByteBufUtil.getBytes(buf, buf.readerIndex(), available);
+                buf.skipBytes(4); // province and city id
+                String manufacturer = buf.readCharSequence(5, StandardCharsets.US_ASCII).toString();
+                String model = buf.readCharSequence(20, StandardCharsets.US_ASCII).toString();
+                LOGGER.error(
+                        "Huabao terminal register deviceId={} manufacturer={} model={} raw={}",
+                        deviceSession.getDeviceId(),
+                        manufacturer.replaceAll("\\p{C}", ""),
+                        model.replaceAll("\\p{C}", ""),
+                        ByteBufUtil.hexDump(registration));
+            }
+
             if (channel != null) {
                 ByteBuf response = Unpooled.buffer();
                 response.writeShort(index);
