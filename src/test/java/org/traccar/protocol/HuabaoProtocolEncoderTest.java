@@ -70,6 +70,23 @@ public class HuabaoProtocolEncoderTest extends ProtocolTest {
     }
 
     @Test
+    public void testEncodeTransparentJimiText() {
+        ByteBuf id = HuabaoProtocolEncoder.encodeTerminalId("869247060610265");
+        try {
+            ByteBuf frame = HuabaoProtocolEncoder.encodeTransparent(id, "DMSSEP,1,1#", 0xF0);
+            try {
+                assertEquals(
+                        "7e8900000c4f0ebc3a1ae20001f0444d535345502c312c3123747e",
+                        ByteBufUtil.hexDump(frame));
+            } finally {
+                frame.release();
+            }
+        } finally {
+            id.release();
+        }
+    }
+
+    @Test
     public void testEncodeQuerySpecificParameter() {
         ByteBuf data = Unpooled.buffer();
         try {

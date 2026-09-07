@@ -37,12 +37,13 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
 
     private static final int DEVICE_TYPE_JC181 = 55;
     private static final int DEVICE_TYPE_JC371 = 56;
+    private static final int DEVICE_TYPE_JC450 = 57;
 
     public HuabaoProtocolEncoder(Protocol protocol) {
         super(protocol);
     }
 
-    private ByteBuf encodeTransparent(ByteBuf id, String payload, int subtype) {
+    static ByteBuf encodeTransparent(ByteBuf id, String payload, int subtype) {
         ByteBuf data = Unpooled.buffer();
         data.writeByte(subtype);
         data.writeBytes(payload.getBytes(StandardCharsets.US_ASCII));
@@ -137,8 +138,9 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                     String payload = command.getString(Command.KEY_DATA);
                     int deviceType = Context.getIdentityManager().lookupAttributeInteger(
                             command.getDeviceId(), "deviceType", 0, false, false);
-                    boolean jimiOnlineCommand =
-                            deviceType == DEVICE_TYPE_JC181 || deviceType == DEVICE_TYPE_JC371;
+                    boolean jimiOnlineCommand = deviceType == DEVICE_TYPE_JC181
+                            || deviceType == DEVICE_TYPE_JC371
+                            || deviceType == DEVICE_TYPE_JC450;
                     int subtype = jimiOnlineCommand ? 0xF0 : 0x40;
                     LOGGER.error(
                             "Huabao command encoded deviceId={} deviceType={} subtype=0x{} payload={}",
