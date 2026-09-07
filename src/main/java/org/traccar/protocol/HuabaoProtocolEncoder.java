@@ -85,6 +85,26 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
         data.writeBytes(value);
     }
 
+    static int[] parseParameterIds(String value) {
+        String[] parts = value.split("[ ,]+");
+        int[] ids = new int[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            String part = parts[i].trim();
+            if (part.startsWith("0x") || part.startsWith("0X")) {
+                part = part.substring(2);
+            }
+            ids[i] = (int) Long.parseLong(part, 16);
+        }
+        return ids;
+    }
+
+    static void encodeQuerySpecificParameterData(ByteBuf data, int[] parameterIds) {
+        data.writeByte(parameterIds.length);
+        for (int parameterId : parameterIds) {
+            data.writeInt(parameterId);
+        }
+    }
+
     static void encodeVideoRequestData(ByteBuf data, String server, int port, int channel) {
         data.writeByte(server.length());
         data.writeCharSequence(server, StandardCharsets.US_ASCII);
@@ -177,7 +197,15 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                     return HuabaoProtocolDecoder.formatMessage(
                             HuabaoProtocolDecoder.MSG_VIDEO_PLAYBACK, id, false, data);
                 case Command.TYPE_GET_DEVICE_STATUS:
-                    // 0x8104 query all terminal parameters, empty body; device replies with 0x0104
+                    // No data: 0x8104 query all terminal parameters (empty body).
+                    // Data present: comma-separated parameter ids -> 0x8106 query specific.
+                    // Either way the device replies with 0x0104.
+                    String parameterIds = command.getString(Command.KEY_DATA);
+                    if (parameterIds != null && !parameterIds.isEmpty()) {
+                        encodeQuerySpecificParameterData(data, parseParameterIds(parameterIds));
+                        return HuabaoProtocolDecoder.formatMessage(
+                                HuabaoProtocolDecoder.MSG_QUERY_SPECIFIC_PARAMETERS, id, false, data);
+                    }
                     return HuabaoProtocolDecoder.formatMessage(
                             HuabaoProtocolDecoder.MSG_QUERY_PARAMETERS, id, false, data);
                 case Command.TYPE_GET_VERSION:
