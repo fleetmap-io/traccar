@@ -50,6 +50,27 @@ public class HuabaoProtocolDecoderTest extends ProtocolTest {
                 "mediaEvent", 3);
 
         verifyAttribute(decoder, binary(
+                "7e020000744f0ebc3a18a4cfc6000408000004000f01b23db502e881f40009013600812609061453"
+                        + "56010400009fdc30011f31011214040000000115040000000217020000eb095554432d30333a30"
+                        + "30652f0000000000010100000000001f0009fe4dc24bfd177e0c260906145355ffff3036303435"
+                        + "323426090614535500050003" + "7e"),
+                Position.KEY_ALARM, Position.ALARM_FATIGUE_DRIVING);
+
+        verifyAttribute(decoder, binary(
+                "7e020000744f0ebc3a18a4cfc6000408000004000f01b23db502e881f40009013600812609061453"
+                        + "56010400009fdc30011f31011214040000000115040000000217020000eb095554432d30333a30"
+                        + "30652f0000000000010100000000001f0009fe4dc24bfd177e0c260906145355ffff3036303435"
+                        + "323426090614535500050003" + "7e"),
+                "alarmAttachments", 5);
+
+        verifyAttribute(decoder, binary(
+                "7e020000744f0ebc3a18a4cfc6000408000004000f01b23db502e881f40009013600812609061453"
+                        + "56010400009fdc30011f31011214040000000115040000000217020000eb095554432d30333a30"
+                        + "30652f0000000000010100000000001f0009fe4dc24bfd177e0c260906145355ffff3036303435"
+                        + "323426090614535500050003" + "7e"),
+                "dmsAlarmType", "fatigue");
+
+        verifyAttribute(decoder, binary(
                 "7e01040015013345678906000100010200000001040000003c0000001804000027109f7e"),
                 "parameters", "{\"0x1\":\"0000003c\",\"0x18\":\"00002710\"}");
 
