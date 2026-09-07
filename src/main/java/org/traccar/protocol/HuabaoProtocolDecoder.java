@@ -84,6 +84,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_VIDEO_LIST_RESPONSE = 0x1205;
     public static final int MSG_SET_PARAMETERS = 0x8103;
     public static final int MSG_QUERY_PARAMETERS = 0x8104;
+    public static final int MSG_QUERY_SPECIFIC_PARAMETERS = 0x8106;
     public static final int MSG_PARAMETERS_RESPONSE = 0x0104;
     public static final int MSG_QUERY_ATTRIBUTES = 0x8107;
     public static final int MSG_ATTRIBUTES_RESPONSE = 0x0107;

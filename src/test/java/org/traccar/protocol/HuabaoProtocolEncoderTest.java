@@ -69,6 +69,18 @@ public class HuabaoProtocolEncoderTest extends ProtocolTest {
         }
     }
 
+    @Test
+    public void testEncodeQuerySpecificParameter() {
+        ByteBuf data = Unpooled.buffer();
+        try {
+            HuabaoProtocolEncoder.encodeQuerySpecificParameterData(
+                    data, HuabaoProtocolEncoder.parseParameterIds("64, 65, 0xf364, F365"));
+            assertEquals("0400000064000000650000f3640000f365", ByteBufUtil.hexDump(data));
+        } finally {
+            data.release();
+        }
+    }
+
     @Ignore
     @Test
     public void testEncode() throws Exception {
