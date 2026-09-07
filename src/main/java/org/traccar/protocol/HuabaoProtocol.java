@@ -32,6 +32,7 @@ public class HuabaoProtocol extends BaseProtocol {
                 Command.TYPE_VIDEO_LIST,
                 Command.TYPE_VIDEO_PLAYBACK,
                 Command.TYPE_GET_DEVICE_STATUS,
+                Command.TYPE_GET_VERSION,
                 Command.TYPE_CONFIGURATION);
         addServer(new TrackerServer(false, getName()) {
             @Override

@@ -85,6 +85,8 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_SET_PARAMETERS = 0x8103;
     public static final int MSG_QUERY_PARAMETERS = 0x8104;
     public static final int MSG_PARAMETERS_RESPONSE = 0x0104;
+    public static final int MSG_QUERY_ATTRIBUTES = 0x8107;
+    public static final int MSG_ATTRIBUTES_RESPONSE = 0x0107;
 
     public static final int RESULT_SUCCESS = 0;
 
@@ -351,6 +353,47 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             parameters.append('}');
 
             position.set("parameters", parameters.toString());
+            sendGeneralResponse(channel, remoteAddress, id, type, index);
+            return position;
+
+        } else if (type == MSG_ATTRIBUTES_RESPONSE) {
+
+            Position position = new Position(getProtocolName());
+            position.setDeviceId(deviceSession.getDeviceId());
+            getLastLocation(position, null);
+
+            byte[] raw = ByteBufUtil.getBytes(buf, buf.readerIndex(), Math.min(bodyLength, buf.readableBytes()));
+
+            int terminalType = buf.readUnsignedShort();
+            String manufacturer = buf.readCharSequence(5, StandardCharsets.US_ASCII).toString().trim();
+            String model = buf.readCharSequence(20, StandardCharsets.US_ASCII).toString().trim();
+            buf.skipBytes(7); // terminal id
+            buf.skipBytes(10); // sim iccid
+            String hardware = "";
+            String firmware = "";
+            if (buf.readableBytes() >= 1) {
+                int length = buf.readUnsignedByte();
+                if (length > 0 && length <= buf.readableBytes()) {
+                    hardware = buf.readCharSequence(length, StandardCharsets.US_ASCII).toString().trim();
+                }
+            }
+            if (buf.readableBytes() >= 1) {
+                int length = buf.readUnsignedByte();
+                if (length > 0 && length <= buf.readableBytes()) {
+                    firmware = buf.readCharSequence(length, StandardCharsets.US_ASCII).toString().trim();
+                }
+            }
+
+            LOGGER.error(
+                    "Huabao terminal attributes deviceId={} type=0x{} manufacturer={} model={} hardware={} firmware={} "
+                            + "raw={}",
+                    deviceSession.getDeviceId(), Integer.toHexString(terminalType).toUpperCase(),
+                    manufacturer, model, hardware, firmware, ByteBufUtil.hexDump(raw));
+
+            position.set("terminalModel", model.replaceAll("\\p{C}", ""));
+            position.set(Position.KEY_VERSION_HW, hardware.replaceAll("\\p{C}", ""));
+            position.set(Position.KEY_VERSION_FW, firmware.replaceAll("\\p{C}", ""));
+
             sendGeneralResponse(channel, remoteAddress, id, type, index);
             return position;
 
