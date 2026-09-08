@@ -162,7 +162,13 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         postEventMetadata(host, port, identifier, position);
     }
 
-    private static final HttpClient METADATA_CLIENT = HttpClient.newHttpClient();
+    // HTTP/1.1 explicitly: the default client tries an h2c upgrade first, and on a
+    // plain HTTP/1.1 sink that can leave the POST body without a Content-Length,
+    // which crashes the sink's keep-alive parser.
+    private static final HttpClient METADATA_CLIENT = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1)
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
 
     // The alarm identification number the sink files under carries the event time
     // but not the type, so hand the sink {type, alarm, level, ...}. Fire and
