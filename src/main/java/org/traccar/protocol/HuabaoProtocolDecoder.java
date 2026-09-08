@@ -97,6 +97,8 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
     public static final int RESULT_SUCCESS = 0;
 
+    private static final int DEVICE_TYPE_JC450 = 57;
+
     public static ByteBuf formatMessage(int type, ByteBuf id, boolean shortIndex, ByteBuf data) {
         ByteBuf buf = Unpooled.buffer();
         buf.writeByte(0x7e);
@@ -155,9 +157,13 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         // DMS alarms (fatigue, distraction, phone use, smoking...) are recorded by
         // the cabin-facing camera; ADAS alarms by the road-facing one. Without
         // this every event's media came back from channel 1 (the road camera).
+        // The cabin channel is model-specific - JC450 puts it on 3, others on 2.
         int camera = Context.getConfig().getInteger(getProtocolName() + ".attachmentChannel", 1);
         if (position.getAttributes().containsKey("dmsAlarm")) {
-            camera = Context.getConfig().getInteger(getProtocolName() + ".attachmentChannelDms", 2);
+            int deviceType = Context.getIdentityManager().lookupAttributeInteger(
+                    position.getDeviceId(), "deviceType", 0, false, false);
+            int dmsChannel = deviceType == DEVICE_TYPE_JC450 ? 3 : 2;
+            camera = Context.getConfig().getInteger(getProtocolName() + ".attachmentChannelDms", dmsChannel);
         }
         String command = "VIDEOUPLOAD," + host + "," + port + "," + identifier + "," + camera + ",2#";
         channel.writeAndFlush(new NetworkMessage(
