@@ -111,4 +111,8 @@
 
   <entry key='log.protocol'></entry>
 
+  <!-- Where JC450 dashcams POST ADAS/DMS event media after a VIDEOUPLOAD. -->
+  <entry key='huabao.attachmentUrl'>media-ip.n-gps.com</entry>
+  <entry key='huabao.attachmentPort'>10005</entry>
+
 </properties>
