@@ -37,10 +37,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.SocketAddress;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.LinkedList;
@@ -154,6 +159,50 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         LOGGER.error(
                 "Huabao event attachment request deviceId={} identifier={} attachments={}",
                 position.getDeviceId(), identifier, position.getInteger("alarmAttachments"));
+        postEventMetadata(host, port, identifier, position);
+    }
+
+    private static final HttpClient METADATA_CLIENT = HttpClient.newHttpClient();
+
+    // The alarm identification number the sink files under carries the event time
+    // but not the type, so hand the sink {type, alarm, level, ...}. Fire and
+    // forget - a failure here must never affect decoding.
+    private void postEventMetadata(String host, int port, String identifier, Position position) {
+        String type = position.getString("dmsAlarmType");
+        String kind = "dms";
+        if (type == null) {
+            type = position.getString("adasAlarmType");
+            kind = "adas";
+        }
+        int level = position.getInteger("dmsAlarmLevel");
+        if (level == 0) {
+            level = position.getInteger("adasAlarmLevel");
+        }
+        String imei;
+        try {
+            imei = Context.getIdentityManager().getById(position.getDeviceId()).getUniqueId();
+        } catch (RuntimeException error) {
+            return;
+        }
+        String alarm = position.getString(Position.KEY_ALARM);
+        String body = "{\"imei\":\"" + imei + "\",\"identifier\":\"" + identifier + "\""
+                + ",\"type\":" + (type != null ? "\"" + type + "\"" : "null")
+                + ",\"alarm\":" + (alarm != null ? "\"" + alarm + "\"" : "null")
+                + ",\"level\":" + level
+                + ",\"time\":" + position.getFixTime().getTime()
+                + ",\"kind\":\"" + kind + "\"}";
+        try {
+            METADATA_CLIENT.sendAsync(
+                    HttpRequest.newBuilder()
+                            .uri(URI.create("http://" + host + ":" + port + "/event"))
+                            .timeout(Duration.ofSeconds(5))
+                            .header("Content-Type", "application/json")
+                            .POST(HttpRequest.BodyPublishers.ofString(body))
+                            .build(),
+                    HttpResponse.BodyHandlers.discarding());
+        } catch (RuntimeException error) {
+            LOGGER.warn("Huabao event metadata post failed deviceId={}", position.getDeviceId(), error);
+        }
     }
 
     private String decodeAlarm(long value) {
