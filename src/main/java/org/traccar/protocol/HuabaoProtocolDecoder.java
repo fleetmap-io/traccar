@@ -20,6 +20,7 @@ import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import org.traccar.BaseProtocolDecoder;
+import org.traccar.Context;
 import org.traccar.DeviceSession;
 import org.traccar.NetworkMessage;
 import org.traccar.Protocol;
@@ -132,6 +133,29 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         }
     }
 
+    // When an ADAS/DMS alarm carries attachments, ask the camera to POST the
+    // event's media (clip + snapshots) to an external HTTP endpoint, keyed by the
+    // alarm identification number. Off unless huabao.attachmentUrl is configured.
+    private void requestEventAttachments(
+            Channel channel, SocketAddress remoteAddress, ByteBuf id, Position position) {
+        if (channel == null || position == null || position.getInteger("alarmAttachments") <= 0) {
+            return;
+        }
+        String identifier = position.getString("alarmIdentifier");
+        String host = Context.getConfig().getString(getProtocolName() + ".attachmentUrl");
+        if (identifier == null || host == null) {
+            return;
+        }
+        int port = Context.getConfig().getInteger(getProtocolName() + ".attachmentPort", 80);
+        int camera = Context.getConfig().getInteger(getProtocolName() + ".attachmentChannel", 1);
+        String command = "VIDEOUPLOAD," + host + "," + port + "," + identifier + "," + camera + ",2#";
+        channel.writeAndFlush(new NetworkMessage(
+                HuabaoProtocolEncoder.encodeTransparent(id, command, 0xF0), remoteAddress));
+        LOGGER.error(
+                "Huabao event attachment request deviceId={} identifier={} attachments={}",
+                position.getDeviceId(), identifier, position.getInteger("alarmAttachments"));
+    }
+
     private String decodeAlarm(long value) {
         if (BitUtil.check(value, 0)) {
             return Position.ALARM_SOS;
@@ -228,11 +252,16 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         buf.skipBytes(1 + 2 + 4 + 4 + 6 + 2); // speed, altitude, lat, lon, time, vehicle status
 
         // Alarm identification number (16 bytes): terminal id (7), time (6),
-        // sequence (1), attachment count (1), reserved (1).
-        buf.skipBytes(7 + 6);
-        position.set("alarmSequence", buf.readUnsignedByte());
-        position.set("alarmAttachments", buf.readUnsignedByte());
+        // sequence (1), attachment count (1), reserved (1). The whole block, hex
+        // encoded, is the id the VIDEOUPLOAD / 0x9208 attachment request uses.
         position.set("alarmIndex", (int) (alarmId & 0xFFFFFFFFL));
+        if (buf.readableBytes() >= 16) {
+            byte[] identifier = new byte[16];
+            buf.readBytes(identifier);
+            position.set("alarmIdentifier", ByteBufUtil.hexDump(identifier));
+            position.set("alarmSequence", identifier[13] & 0xFF);
+            position.set("alarmAttachments", identifier[14] & 0xFF);
+        }
 
         if ("fatigue".equals(name)) {
             position.set(Position.KEY_ALARM, Position.ALARM_FATIGUE_DRIVING);
@@ -504,7 +533,10 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
             sendGeneralResponse(channel, remoteAddress, id, type, index);
 
-            return decodeLocation(deviceSession, buf, type);
+            Position location = decodeLocation(deviceSession, buf, type);
+            requestEventAttachments(
+                    channel, remoteAddress, Unpooled.wrappedBuffer(ByteBufUtil.getBytes(buf, 5, 6)), location);
+            return location;
 
         } else if (type == MSG_MULTIMEDIA_EVENT) {
 
