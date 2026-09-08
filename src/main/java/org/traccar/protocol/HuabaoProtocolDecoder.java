@@ -152,7 +152,13 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             return;
         }
         int port = Context.getConfig().getInteger(getProtocolName() + ".attachmentPort", 80);
+        // DMS alarms (fatigue, distraction, phone use, smoking...) are recorded by
+        // the cabin-facing camera; ADAS alarms by the road-facing one. Without
+        // this every event's media came back from channel 1 (the road camera).
         int camera = Context.getConfig().getInteger(getProtocolName() + ".attachmentChannel", 1);
+        if (position.getAttributes().containsKey("dmsAlarm")) {
+            camera = Context.getConfig().getInteger(getProtocolName() + ".attachmentChannelDms", 2);
+        }
         String command = "VIDEOUPLOAD," + host + "," + port + "," + identifier + "," + camera + ",2#";
         channel.writeAndFlush(new NetworkMessage(
                 HuabaoProtocolEncoder.encodeTransparent(id, command, 0xF0), remoteAddress));
