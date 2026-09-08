@@ -463,6 +463,10 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
             buf.readUnsignedShort(); // response serial number
             long total = buf.readUnsignedInt();
+            // The camera stamps SD-card recordings in its own local time, not UTC,
+            // so decode them with the device timezone (decoder.timezone), same as
+            // location reports.
+            TimeZone videoTimeZone = deviceSession.get(DeviceSession.KEY_TIMEZONE);
             StringBuilder resources = new StringBuilder("[");
             int count = 0;
             while (buf.readableBytes() >= 28 && count < total) {
@@ -471,9 +475,9 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                 }
                 resources.append('{');
                 resources.append("\"channel\":").append(buf.readUnsignedByte()).append(',');
-                resources.append("\"startTime\":").append(readDate(buf, TimeZone.getTimeZone("UTC")).getTime())
+                resources.append("\"startTime\":").append(readDate(buf, videoTimeZone).getTime())
                         .append(',');
-                resources.append("\"endTime\":").append(readDate(buf, TimeZone.getTimeZone("UTC")).getTime())
+                resources.append("\"endTime\":").append(readDate(buf, videoTimeZone).getTime())
                         .append(',');
                 resources.append("\"alarmFlag\":").append(buf.readLong()).append(',');
                 resources.append("\"resourceType\":").append(buf.readUnsignedByte()).append(',');
