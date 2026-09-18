@@ -91,6 +91,25 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
                             continue;
                         }
 
+                        List<Long> resolvedGeofenceIds = new ArrayList<>();
+                        for (long geofenceId : geofenceIds) {
+                            if (Context.getGeofenceManager().getById(geofenceId) != null) {
+                                resolvedGeofenceIds.add(geofenceId);
+                            } else {
+                                // A geofence that hasn't loaded into GeofenceManager's cache yet (e.g. it was
+                                // just created or the notification just had it attached) must not be treated
+                                // as "not visited" - that reads identically to a genuine absence and fires a
+                                // false alarm for every device on the notification at once.
+                                LOGGER.warn(
+                                        "Skipping geofence absence check id={} geofenceId={}, geofence not found",
+                                        notificationId, geofenceId);
+                            }
+                        }
+                        if (resolvedGeofenceIds.isEmpty()) {
+                            continue;
+                        }
+                        geofenceIds = resolvedGeofenceIds;
+
                         Date from = new Date(start);
                         Date to = new Date(deadline);
                         Set<Long> deviceIds;
@@ -141,15 +160,18 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
 
     /**
      * Returns the geofences visited by this device in [from, to], or {@code null} if the
-     * check could not be completed (e.g. a transient database error). Callers must treat a
+     * check could not be completed or could not be trusted (e.g. a transient database error,
+     * or no track data at all for the device in the window). Callers must treat a
      * {@code null} result as "unknown" and skip raising an absence alarm for it, rather than
-     * treating it the same as an empty set - otherwise a query failure looks identical to a
-     * genuine absence and fires a false alarm.
+     * treating it the same as an empty set - otherwise a failed or empty read looks identical
+     * to a genuine absence and fires a false alarm.
      */
     private Set<Long> getVisitedGeofences(long deviceId, List<Long> geofenceIds, Date from, Date to) {
         Set<Long> visited = new HashSet<>();
         try {
+            boolean hasAnyPosition = false;
             for (Position position : Context.getDataManager().getPositions(deviceId, from, to)) {
+                hasAnyPosition = true;
                 for (long geofenceId : geofenceIds) {
                     if (visited.contains(geofenceId)) {
                         continue;
@@ -160,6 +182,16 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
                         visited.add(geofenceId);
                     }
                 }
+            }
+            if (!hasAnyPosition) {
+                // No track data at all for this device in the whole window is not proof it
+                // never entered the geofence - it may just as well mean the read failed to
+                // return what is actually there (e.g. replica lag), which is indistinguishable
+                // from a real gap without more signal. Treat it as unknown rather than absent.
+                LOGGER.warn(
+                        "Skipping geofence absence check deviceId={}, no position data in window",
+                        deviceId);
+                return null;
             }
         } catch (SQLException error) {
             LOGGER.warn("Error checking geofence visits, deviceId " + deviceId, error);
