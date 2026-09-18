@@ -91,25 +91,6 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
                             continue;
                         }
 
-                        List<Long> resolvedGeofenceIds = new ArrayList<>();
-                        for (long geofenceId : geofenceIds) {
-                            if (Context.getGeofenceManager().getById(geofenceId) != null) {
-                                resolvedGeofenceIds.add(geofenceId);
-                            } else {
-                                // A geofence that hasn't loaded into GeofenceManager's cache yet (e.g. it was
-                                // just created or the notification just had it attached) must not be treated
-                                // as "not visited" - that reads identically to a genuine absence and fires a
-                                // false alarm for every device on the notification at once.
-                                LOGGER.error(
-                                        "Skipping geofence absence check id={} geofenceId={}, geofence not found",
-                                        notificationId, geofenceId);
-                            }
-                        }
-                        if (resolvedGeofenceIds.isEmpty()) {
-                            continue;
-                        }
-                        geofenceIds = resolvedGeofenceIds;
-
                         Date from = new Date(start);
                         Date to = new Date(deadline);
                         Set<Long> deviceIds;
