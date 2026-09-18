@@ -105,6 +105,13 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
 
                         for (long deviceId : deviceIds) {
                             Set<Long> visitedGeofences = getVisitedGeofences(deviceId, geofenceIds, from, to);
+                            if (visitedGeofences == null) {
+                                LOGGER.warn(
+                                        "Skipping geofence absence check id={} deviceId={}, "
+                                        + "visit check failed instead of confirming absence",
+                                        notificationId, deviceId);
+                                continue;
+                            }
                             for (long geofenceId : geofenceIds) {
                                 if (!visitedGeofences.contains(geofenceId)) {
                                     LOGGER.error(
@@ -132,6 +139,13 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
 
     }
 
+    /**
+     * Returns the geofences visited by this device in [from, to], or {@code null} if the
+     * check could not be completed (e.g. a transient database error). Callers must treat a
+     * {@code null} result as "unknown" and skip raising an absence alarm for it, rather than
+     * treating it the same as an empty set - otherwise a query failure looks identical to a
+     * genuine absence and fires a false alarm.
+     */
     private Set<Long> getVisitedGeofences(long deviceId, List<Long> geofenceIds, Date from, Date to) {
         Set<Long> visited = new HashSet<>();
         try {
@@ -149,6 +163,7 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
             }
         } catch (SQLException error) {
             LOGGER.warn("Error checking geofence visits, deviceId " + deviceId, error);
+            return null;
         }
         return visited;
     }
