@@ -104,7 +104,15 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
                         }
 
                         for (long deviceId : deviceIds) {
-                            Set<Long> visitedGeofences = getVisitedGeofences(deviceId, geofenceIds, from, to);
+                            Set<Long> visitedGeofences =
+                                    getVisitedGeofences(notificationId, deviceId, geofenceIds, from, to);
+                            if (visitedGeofences == null) {
+                                LOGGER.error(
+                                        "Skipping geofence absence check id={} deviceId={}, "
+                                        + "visit check failed instead of confirming absence",
+                                        notificationId, deviceId);
+                                continue;
+                            }
                             for (long geofenceId : geofenceIds) {
                                 if (!visitedGeofences.contains(geofenceId)) {
                                     LOGGER.error(
@@ -132,10 +140,22 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
 
     }
 
-    private Set<Long> getVisitedGeofences(long deviceId, List<Long> geofenceIds, Date from, Date to) {
+    /**
+     * Returns the geofences visited by this device in [from, to], or {@code null} if the
+     * check could not be completed or could not be trusted (e.g. a transient database error,
+     * or no track data at all for the device in the window). Callers must treat a
+     * {@code null} result as "unknown" and skip raising an absence alarm for it, rather than
+     * treating it the same as an empty set - otherwise a failed or empty read looks identical
+     * to a genuine absence and fires a false alarm.
+     */
+    private Set<Long> getVisitedGeofences(
+            long notificationId, long deviceId, List<Long> geofenceIds, Date from, Date to) {
         Set<Long> visited = new HashSet<>();
+        long queryStart = System.currentTimeMillis();
+        int positionCount = 0;
         try {
             for (Position position : Context.getDataManager().getPositions(deviceId, from, to)) {
+                positionCount++;
                 for (long geofenceId : geofenceIds) {
                     if (visited.contains(geofenceId)) {
                         continue;
@@ -147,8 +167,29 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
                     }
                 }
             }
+            // Logged unconditionally (not just on failure) so the next occurrence of a false
+            // absence alarm can be diagnosed from the log alone: this line distinguishes "the
+            // query returned nothing at all" (positionCount=0) from "it returned real positions
+            // but none matched the geofence" (positionCount>0, visited=[]), which look identical
+            // from the outside but point at completely different bugs.
+            LOGGER.error(
+                    "Geofence absence position check id={} deviceId={} from={} to={} "
+                    + "positionCount={} visited={} queryMs={}",
+                    notificationId, deviceId, from, to,
+                    positionCount, visited, System.currentTimeMillis() - queryStart);
+            if (positionCount == 0) {
+                // No track data at all for this device in the whole window is not proof it
+                // never entered the geofence - it may just as well mean the read failed to
+                // return what is actually there (e.g. replica lag), which is indistinguishable
+                // from a real gap without more signal. Treat it as unknown rather than absent.
+                LOGGER.error(
+                        "Skipping geofence absence check id={} deviceId={}, no position data in window",
+                        notificationId, deviceId);
+                return null;
+            }
         } catch (SQLException error) {
-            LOGGER.warn("Error checking geofence visits, deviceId " + deviceId, error);
+            LOGGER.error("Error checking geofence visits, deviceId " + deviceId, error);
+            return null;
         }
         return visited;
     }
