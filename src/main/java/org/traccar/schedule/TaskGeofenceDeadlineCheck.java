@@ -154,7 +154,7 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
         long queryStart = System.currentTimeMillis();
         int positionCount = 0;
         try {
-            for (Position position : Context.getDataManager().getPositions(deviceId, from, to)) {
+            for (Position position : Context.getDataManager().getPositionsDay(deviceId, from, to)) {
                 positionCount++;
                 for (long geofenceId : geofenceIds) {
                     if (visited.contains(geofenceId)) {

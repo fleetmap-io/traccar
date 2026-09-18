@@ -51,6 +51,10 @@
         SELECT * FROM tc_positions WHERE deviceId = :deviceId AND fixTime BETWEEN :from AND :to ORDER BY fixTime
     </entry>
 
+    <entry key='database.selectPositionsDay'>
+        SELECT * FROM tc_positions_day WHERE deviceId = :deviceId AND fixTime BETWEEN :from AND :to ORDER BY fixTime
+    </entry>
+
     <entry key='database.updateLatestPosition'>
         UPDATE tc_devices SET positionId = :id WHERE id = :deviceId
     </entry>

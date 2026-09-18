@@ -359,6 +359,21 @@ public class DataManager {
                 .executeQuery(Position.class);
     }
 
+    /**
+     * Like {@link #getPositions}, but reads from tc_positions_day instead of tc_positions.
+     * tc_positions is pruned down to essentially each device's latest position, so it isn't a
+     * reliable source for "did this device visit X earlier today" checks; tc_positions_day
+     * retains the full history for the current day and should be used for same-day lookups
+     * instead (e.g. the geofence absence deadline check, whose window is always within today).
+     */
+    public Collection<Position> getPositionsDay(long deviceId, Date from, Date to) throws SQLException {
+        return QueryBuilder.create(dataSource, getQuery("database.selectPositionsDay"))
+                .setLong("deviceId", deviceId)
+                .setDate("from", from)
+                .setDate("to", to)
+                .executeQuery(Position.class);
+    }
+
     public Position getPosition(long deviceId, long positionId) throws SQLException {
         return QueryBuilder.create(dataSource, getQuery("database.selectPositionByDevice"))
                 .setLong("deviceId", deviceId)
