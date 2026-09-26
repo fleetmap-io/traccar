@@ -28,6 +28,7 @@ import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,8 +48,14 @@ public class TaskGeofenceDeadlineCheck implements Runnable {
 
     private static final long CHECK_PERIOD_MINUTES = 15;
 
-    // TODO: timetable time zone should come from the user, hardcoded to Morocco for now
-    private static final ZoneId TIMETABLE_ZONE = ZoneId.of("Africa/Casablanca");
+    // TODO: timetable time zone should come from the user, hardcoded to Morocco for now.
+    // Using a fixed UTC offset rather than ZoneId.of("Africa/Casablanca") deliberately:
+    // Morocco moved to permanent UTC+0 (no DST) on 2026-09-20 (IANA tzdata 2026c), but as of
+    // this writing no OpenJDK vendor (Corretto, Temurin) has shipped a build with that tzdata
+    // update yet - ZoneId.of("Africa/Casablanca") still resolves to the old +01:00 on every
+    // available JDK 11 build, firing this deadline check an hour early. A fixed offset sidesteps
+    // the JVM's tzdata entirely and is correct for as long as Morocco stays on plain UTC.
+    private static final ZoneId TIMETABLE_ZONE = ZoneOffset.UTC;
 
     public void schedule(ScheduledExecutorService executor) {
         executor.scheduleAtFixedRate(this, CHECK_PERIOD_MINUTES, CHECK_PERIOD_MINUTES, TimeUnit.MINUTES);
