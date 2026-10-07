@@ -31,7 +31,9 @@ public class DigitalPortHandler extends BaseDataHandler {
                         && device.getAttributes().containsKey(sensor + "Attribute")
                         && !position.getProtocol().equals("startek")) {
                     String attribute = device.getString(sensor + "Attribute");
-                    if (getProperty(last, attribute) != getProperty(position, attribute)) {
+                    if (last.getAttributes().containsKey(attribute)
+                            && position.getAttributes().containsKey(attribute)
+                            && getProperty(last, attribute) != getProperty(position, attribute)) {
                         position.set(Position.KEY_ALARM, device.getAttributes().get(sensor).toString());
                     }
                 }
