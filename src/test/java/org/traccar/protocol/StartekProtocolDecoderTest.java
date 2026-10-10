@@ -26,6 +26,10 @@ public class StartekProtocolDecoderTest extends ProtocolTest {
                 "Tx,*,*,*,*,*,0.0,0,0,0,0,-125,0,0,0,0,0,0,0\r\n",
                 "F3\r\n"));
 
+        verifyAttribute(decoder, text(
+                        "&&l142,863911061945394,000,18,,230918072531,A,22.678598,114.045970,26,0.6,0,0,74,2286304571,460|0|249F|00001093,20,001C,00,00,04A7|019C|0000|0000,1,C0\r\n"),
+                Position.KEY_ALARM, Position.ALARM_POWER_CUT);
+
         verifyPosition(decoder, text(
                 "&&l141,863911061945394,000,0,,230918072531,A,22.678598,114.045970,26,0.6,0,0,74,2286304571,460|0|249F|00001093,20,001C,00,00,04A7|019C|0000|0000,1,C0\r\n"));
 
