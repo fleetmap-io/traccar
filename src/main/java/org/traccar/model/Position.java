@@ -99,6 +99,7 @@ public class Position extends Message {
     public static final String KEY_IDLE_TIME = "idleTime";
     public static final String KEY_STOP_TIME = "stopTime";
     public static final String KEY_TRIP_TIME = "tripTime";
+    public static final String KEY_NO_FUEL_DISTANCE = "noFuelDistance"; // meters
     public static final String KEY_TRIP_DISTANCE = "tripDistance"; // meters
     public static final String KEY_DRIVING_TIME = "drivingTime";
 
