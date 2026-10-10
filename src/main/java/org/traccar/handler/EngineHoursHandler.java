@@ -41,6 +41,7 @@ public class EngineHoursHandler extends BaseDataHandler {
                 long hours = last.getLong(Position.KEY_HOURS);
                 long idleTime = last.getLong(Position.KEY_IDLE_TIME);
                 long tripTime = last.getLong(Position.KEY_TRIP_TIME);
+                double tripDistance = last.getDouble(Position.KEY_TRIP_DISTANCE);
                 long stopTime = last.getLong(Position.KEY_STOP_TIME);
                 long diff = position.getFixTime().getTime() - last.getFixTime().getTime();
                 if (last.getBoolean(Position.KEY_IGNITION) && position.getBoolean(Position.KEY_IGNITION)) {
@@ -48,6 +49,7 @@ public class EngineHoursHandler extends BaseDataHandler {
                         hours += diff;
                         tripTime += diff;
                     }
+                    tripDistance += position.getDouble(Position.KEY_DISTANCE);
                     if (position.getSpeed() < speedThreshold && diff > 0) {
                         idleTime += diff;
                     } else {
@@ -56,6 +58,7 @@ public class EngineHoursHandler extends BaseDataHandler {
                 } else {
                     idleTime = 0;
                     tripTime = 0;
+                    tripDistance = 0;
                     if (diff > 0 && !last.getBoolean(Position.KEY_IGNITION) && !position.getBoolean(Position.KEY_IGNITION)) {
                         stopTime += diff;
                         position.set(Position.KEY_STOP_TIME, stopTime);
@@ -66,6 +69,7 @@ public class EngineHoursHandler extends BaseDataHandler {
                 }
                 position.set(Position.KEY_IDLE_TIME, idleTime);
                 position.set(Position.KEY_TRIP_TIME, tripTime);
+                position.set(Position.KEY_TRIP_DISTANCE, tripDistance);
             }
         }
         return position;
