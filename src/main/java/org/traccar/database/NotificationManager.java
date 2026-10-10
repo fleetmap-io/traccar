@@ -99,8 +99,7 @@ public class NotificationManager extends ExtendedObjectManager<Notification> {
                                 filter = true;
                             } else {
                                 List<String> alarms = Arrays.asList(alarmsAttribute.split(","));
-                                String alarm = event.getString(Position.KEY_ALARM);
-                                filter = !alarms.contains(alarm) && !matchesCameraGroup(alarms, alarm);
+                                filter = !alarms.contains(event.getString(Position.KEY_ALARM));
                             }
                         }
                         if (!filter) {
@@ -121,12 +120,6 @@ public class NotificationManager extends ExtendedObjectManager<Notification> {
         if (Context.getEventForwarder() != null) {
             Context.getEventForwarder().forwardEvent(event, position, usersToForward);
         }
-    }
-
-    // "cameraDms" / "cameraAdas" alerts cover every DMS / ADAS alarm type (dmsFatigue, adasLaneDeparture...)
-    private static boolean matchesCameraGroup(List<String> alarms, String alarm) {
-        return alarm != null && (alarm.startsWith("dms") && alarms.contains("cameraDms")
-                || alarm.startsWith("adas") && alarms.contains("cameraAdas"));
     }
 
     public void updateEvents(Map<Event, Position> events) {
