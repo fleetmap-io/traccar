@@ -57,6 +57,7 @@ import org.traccar.handler.DefaultDataHandler;
 import org.traccar.handler.DigitalPortHandler;
 import org.traccar.handler.DistanceHandler;
 import org.traccar.handler.EngineHoursHandler;
+import org.traccar.handler.NoFuelConsumptionHandler;
 import org.traccar.handler.FilterHandler;
 import org.traccar.handler.GeocoderHandler;
 import org.traccar.handler.GeolocationHandler;
@@ -299,6 +300,12 @@ public class MainModule extends AbstractModule {
             return new DigitalPortHandler(identityManager);
         }
         return null;
+    }
+
+    @Singleton
+    @Provides
+    public static NoFuelConsumptionHandler provideNoFuelConsumptionHandler(IdentityManager identityManager) {
+        return new NoFuelConsumptionHandler(identityManager);
     }
 
     @Singleton
