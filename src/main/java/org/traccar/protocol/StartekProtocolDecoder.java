@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 - 2022 Anton Tananaev (anton@traccar.org)
+ * Copyright 2021 - 2024 Anton Tananaev (anton@traccar.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -108,6 +108,12 @@ public class StartekProtocolDecoder extends BaseProtocolDecoder {
             case 5:
             case 6:
                 return Position.ALARM_DOOR;
+            case 17:
+                return Position.ALARM_LOW_POWER;
+            case 18:
+                return Position.ALARM_POWER_CUT;
+            case 19:
+                return Position.ALARM_POWER_RESTORED;
             case 39:
                 return Position.ALARM_ACCELERATION;
             case 40:
