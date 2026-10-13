@@ -330,12 +330,10 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             position.set("alarmAttachments", identifier[14] & 0xFF);
         }
 
-        if ("fatigue".equals(name)) {
-            position.set(Position.KEY_ALARM, Position.ALARM_FATIGUE_DRIVING);
-        } else if ("laneDeparture".equals(name) || "frequentLaneChange".equals(name)) {
-            position.set(Position.KEY_ALARM, Position.ALARM_LANE_CHANGE);
-        } else if ("forwardCollision".equals(name) || "pedestrianCollision".equals(name)) {
-            position.set(Position.KEY_ALARM, Position.ALARM_ACCIDENT);
+        // One alarm per ADAS/DMS type (dmsFatigue, dmsPhoneUse, adasLaneDeparture...) so
+        // each can have its own alert.
+        if (name != null) {
+            position.set(Position.KEY_ALARM, prefix + Character.toUpperCase(name.charAt(0)) + name.substring(1));
         } else {
             position.set(Position.KEY_ALARM, Position.ALARM_GENERAL);
         }
