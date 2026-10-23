@@ -97,6 +97,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
     public static final int RESULT_SUCCESS = 0;
 
+    private static final int DEVICE_TYPE_56 = 56;
     private static final int DEVICE_TYPE_JC450 = 57;
 
     public static ByteBuf formatMessage(int type, ByteBuf id, boolean shortIndex, ByteBuf data) {
@@ -158,19 +159,33 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         // the cabin-facing camera; ADAS alarms by the road-facing one. Without
         // this every event's media came back from channel 1 (the road camera).
         // The cabin channel is model-specific - JC450 puts it on 3, others on 2.
+        int deviceType = Context.getIdentityManager().lookupAttributeInteger(
+                position.getDeviceId(), "deviceType", 0, false, false);
         int camera = Context.getConfig().getInteger(getProtocolName() + ".attachmentChannel", 1);
         if (position.getAttributes().containsKey("dmsAlarm")) {
-            int deviceType = Context.getIdentityManager().lookupAttributeInteger(
-                    position.getDeviceId(), "deviceType", 0, false, false);
             int dmsChannel = deviceType == DEVICE_TYPE_JC450 ? 3 : 2;
             camera = Context.getConfig().getInteger(getProtocolName() + ".attachmentChannelDms", dmsChannel);
         }
-        String command = "VIDEOUPLOAD," + host + "," + port + "," + identifier + "," + camera + ",2#";
-        channel.writeAndFlush(new NetworkMessage(
-                HuabaoProtocolEncoder.encodeTransparent(id, command, 0xF0), remoteAddress));
+        // Ask for the clip from every camera on the device, not only the one that
+        // raised the alarm, so footage from the other channels around the event is
+        // kept too. The alarm's own channel goes first. Channel counts match
+        // getCameraChannels in the frontend (JC450 = 5, type 56 = 3, others = 2).
+        int channelCount = deviceType == DEVICE_TYPE_JC450 ? 5 : deviceType == DEVICE_TYPE_56 ? 3 : 2;
+        List<Integer> cameras = new LinkedList<>();
+        cameras.add(camera);
+        for (int i = 1; i <= channelCount; i++) {
+            if (i != camera) {
+                cameras.add(i);
+            }
+        }
+        for (int c : cameras) {
+            String command = "VIDEOUPLOAD," + host + "," + port + "," + identifier + "," + c + ",2#";
+            channel.writeAndFlush(new NetworkMessage(
+                    HuabaoProtocolEncoder.encodeTransparent(id, command, 0xF0), remoteAddress));
+        }
         LOGGER.error(
-                "Huabao event attachment request deviceId={} identifier={} attachments={}",
-                position.getDeviceId(), identifier, position.getInteger("alarmAttachments"));
+                "Huabao event attachment request deviceId={} identifier={} attachments={} channels={}",
+                position.getDeviceId(), identifier, position.getInteger("alarmAttachments"), cameras);
         postEventMetadata(host, port, identifier, position);
     }
 
@@ -330,12 +345,10 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             position.set("alarmAttachments", identifier[14] & 0xFF);
         }
 
-        if ("fatigue".equals(name)) {
-            position.set(Position.KEY_ALARM, Position.ALARM_FATIGUE_DRIVING);
-        } else if ("laneDeparture".equals(name) || "frequentLaneChange".equals(name)) {
-            position.set(Position.KEY_ALARM, Position.ALARM_LANE_CHANGE);
-        } else if ("forwardCollision".equals(name) || "pedestrianCollision".equals(name)) {
-            position.set(Position.KEY_ALARM, Position.ALARM_ACCIDENT);
+        // One alarm per ADAS/DMS type (dmsFatigue, dmsPhoneUse, adasLaneDeparture...) so
+        // each can have its own alert.
+        if (name != null) {
+            position.set(Position.KEY_ALARM, prefix + Character.toUpperCase(name.charAt(0)) + name.substring(1));
         } else {
             position.set(Position.KEY_ALARM, Position.ALARM_GENERAL);
         }
