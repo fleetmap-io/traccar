@@ -106,6 +106,31 @@ public class UproProtocolDecoder extends BaseProtocolDecoder {
         return null;
     }
 
+    // Decodes the A0-A3 alarm nibbles of the &B status/alarm field (per the Kingwo
+    // protocol spec), where each byte is 0x30-0x3F (i.e. the raw 0-15 value is
+    // byte - '0', not a decimal digit - values 10-15 show up as ':;<=>?').
+    private String decodeStatusAlarm(int a0, int a1, int a3) {
+        if (BitUtil.check(a0, 0)) {
+            return Position.ALARM_SOS;
+        }
+        if (BitUtil.check(a0, 2)) {
+            return Position.ALARM_VIBRATION;
+        }
+        if (BitUtil.check(a0, 3)) {
+            return Position.ALARM_MOVEMENT;
+        }
+        if (BitUtil.check(a1, 2)) {
+            return Position.ALARM_OVERSPEED;
+        }
+        if (BitUtil.check(a3, 1)) {
+            return Position.ALARM_POWER_CUT;
+        }
+        if (BitUtil.check(a3, 2)) {
+            return Position.ALARM_LOW_POWER;
+        }
+        return null;
+    }
+
     @Override
     protected Object decode(
             Channel channel, SocketAddress remoteAddress, Object msg) throws Exception {
@@ -176,12 +201,21 @@ public class UproProtocolDecoder extends BaseProtocolDecoder {
                         decodeLocation(position, data.toString(StandardCharsets.US_ASCII));
                         break;
                     case 'B':
+                        // Each byte here is 0x30-0x3F (a 0-15 nibble, not a decimal digit), so bits
+                        // are read as charAt(i) - '0' rather than Integer.parseInt, which would throw
+                        // on values 10-15 (the ':' ';' '<' '=' '>' '?' characters the spec allows).
                         stringValue = data.toString(StandardCharsets.US_ASCII);
                         position.set(Position.KEY_STATUS, stringValue);
-                        position.set(Position.KEY_IGNITION,
-                                BitUtil.check(Integer.parseInt(stringValue.substring(1, 2)), 0));
-                        position.set(Position.KEY_BLOCKED,
-                                BitUtil.check(Integer.parseInt(stringValue.substring(0, 1)), 1));
+                        if (stringValue.length() == 10) {
+                            position.set(Position.KEY_IGNITION,
+                                    BitUtil.check(stringValue.charAt(1) - '0', 0));
+                            position.set(Position.KEY_BLOCKED,
+                                    BitUtil.check(stringValue.charAt(0) - '0', 1));
+                            position.set(Position.KEY_ALARM, decodeStatusAlarm(
+                                    stringValue.charAt(5) - '0',
+                                    stringValue.charAt(6) - '0',
+                                    stringValue.charAt(8) - '0'));
+                        }
                         break;
                     case 'C':
                         long odometer = 0;
