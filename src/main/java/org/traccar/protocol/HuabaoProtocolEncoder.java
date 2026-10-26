@@ -16,6 +16,7 @@
 package org.traccar.protocol;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import org.traccar.BaseProtocolEncoder;
 import org.traccar.Context;
@@ -125,6 +126,23 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
         data.writeByte(channel);
         data.writeByte(0); // audio and video
         data.writeByte(0); // main stream
+    }
+
+    // T/JSATL12 0x9208 alarm attachment upload request: attachment server address,
+    // TCP/UDP ports, the 16-byte alarm identifier from the 0x64/0x65 alarm, a
+    // 32-byte platform alarm number and 16 reserved bytes. The alarm number only
+    // has to be unique; the hex identifier is exactly 32 characters.
+    static void encodeAlarmAttachmentRequestData(ByteBuf data, String server, int port, String identifier) {
+        data.writeByte(server.length());
+        data.writeCharSequence(server, StandardCharsets.US_ASCII);
+        data.writeShort(port); // TCP port
+        data.writeShort(0); // UDP port
+        data.writeBytes(ByteBufUtil.decodeHexDump(identifier));
+        byte[] alarmNumber = new byte[32];
+        byte[] value = identifier.getBytes(StandardCharsets.US_ASCII);
+        System.arraycopy(value, 0, alarmNumber, 0, Math.min(value.length, alarmNumber.length));
+        data.writeBytes(alarmNumber);
+        data.writeZero(16); // reserved
     }
 
     @Override

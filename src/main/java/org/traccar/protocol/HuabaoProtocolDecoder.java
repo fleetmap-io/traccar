@@ -88,6 +88,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_VIDEO_PLAYBACK = 0x9201;
     public static final int MSG_VIDEO_LIST = 0x9205;
     public static final int MSG_VIDEO_LIST_RESPONSE = 0x1205;
+    public static final int MSG_ALARM_ATTACHMENT_REQUEST = 0x9208;
     public static final int MSG_SET_PARAMETERS = 0x8103;
     public static final int MSG_QUERY_PARAMETERS = 0x8104;
     public static final int MSG_QUERY_SPECIFIC_PARAMETERS = 0x8106;
@@ -99,6 +100,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
     private static final int DEVICE_TYPE_56 = 56;
     private static final int DEVICE_TYPE_JC450 = 57;
+    private static final int DEVICE_TYPE_DC600 = 60;
 
     public static ByteBuf formatMessage(int type, ByteBuf id, boolean shortIndex, ByteBuf data) {
         ByteBuf buf = Unpooled.buffer();
@@ -161,6 +163,28 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         // The cabin channel is model-specific - JC450 puts it on 3, others on 2.
         int deviceType = Context.getIdentityManager().lookupAttributeInteger(
                 position.getDeviceId(), "deviceType", 0, false, false);
+        // The DC600 acks the Jimi VIDEOUPLOAD text but never uploads. Its alarm
+        // identifier is the T/JSATL12 one, so ask the Su-Biao way instead: 0x9208
+        // with the attachment server address, after which the terminal should open
+        // a TCP connection there and send 0x1210/0x1211/0x1212. Only the request is
+        // sent - nothing receives that upload yet. Off unless
+        // huabao.activeSafetyPort is configured.
+        if (deviceType == DEVICE_TYPE_DC600) {
+            int activeSafetyPort = Context.getConfig().getInteger(getProtocolName() + ".activeSafetyPort", 0);
+            if (activeSafetyPort > 0) {
+                String server = Context.getConfig().getString(getProtocolName() + ".activeSafetyServer", host);
+                ByteBuf data = Unpooled.buffer();
+                HuabaoProtocolEncoder.encodeAlarmAttachmentRequestData(data, server, activeSafetyPort, identifier);
+                channel.writeAndFlush(new NetworkMessage(
+                        formatMessage(MSG_ALARM_ATTACHMENT_REQUEST, id, false, data), remoteAddress));
+                LOGGER.error(
+                        "Huabao 0x9208 attachment request deviceId={} identifier={} attachments={} server={}:{}",
+                        position.getDeviceId(), identifier, position.getInteger("alarmAttachments"),
+                        server, activeSafetyPort);
+                postEventMetadata(host, port, identifier, position);
+                return;
+            }
+        }
         int camera = Context.getConfig().getInteger(getProtocolName() + ".attachmentChannel", 1);
         if (position.getAttributes().containsKey("dmsAlarm")) {
             int dmsChannel = deviceType == DEVICE_TYPE_JC450 ? 3 : 2;
