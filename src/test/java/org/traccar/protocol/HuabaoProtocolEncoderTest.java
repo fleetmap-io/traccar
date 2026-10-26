@@ -36,6 +36,21 @@ public class HuabaoProtocolEncoderTest extends ProtocolTest {
     }
 
     @Test
+    public void testEncodeAlarmAttachmentRequest() {
+        ByteBuf data = Unpooled.buffer();
+        try {
+            String identifier = "30000000000000261024113653000400";
+            HuabaoProtocolEncoder.encodeAlarmAttachmentRequestData(data, "media.example", 10006, identifier);
+            assertEquals(
+                    "0d6d656469612e6578616d706c652716" + "0000" + identifier
+                            + ByteBufUtil.hexDump(identifier.getBytes()) + "00000000000000000000000000000000",
+                    ByteBufUtil.hexDump(data));
+        } finally {
+            data.release();
+        }
+    }
+
+    @Test
     public void testEncodeVideoListNoAlarmFilter() {
         ByteBuf data = Unpooled.buffer();
         try {
