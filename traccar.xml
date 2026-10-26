@@ -115,4 +115,9 @@
   <entry key='huabao.attachmentUrl'>media-ip.n-gps.com</entry>
   <entry key='huabao.attachmentPort'>10005</entry>
 
+  <!-- DC600 (T/JSATL12) 0x9208 attachment server. Probe only: the jt1078
+       receiver logs the camera's 0x1210 head ("no JT1078 frame magic"), nothing
+       stores the upload yet. Host defaults to huabao.attachmentUrl. -->
+  <entry key='huabao.activeSafetyPort'>10003</entry>
+
 </properties>
