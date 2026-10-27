@@ -898,6 +898,51 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         return sign * (Math.abs(b1) + b2 / 255.0);
     }
 
+    // Jimi IoT 0xE8 extension (JC371/JC450 protocol v1.5.2, sections 7.2 and 7.3).
+    // Items below 0x1000 are extended alarms, the rest are WORD id + BYTE length blocks.
+    // Stops quietly on anything malformed; the caller resets the reader index.
+    private void decodeJimiExtension(Position position, ByteBuf buf, int endIndex) {
+        while (endIndex - buf.readerIndex() >= 3) {
+            int id = buf.readUnsignedShort();
+            if (id < 0x1000) {
+                int idLength = buf.readUnsignedByte();
+                if (endIndex - buf.readerIndex() < idLength + 1) {
+                    return;
+                }
+                buf.skipBytes(idLength);
+                int infoLength = buf.readUnsignedByte();
+                if (endIndex - buf.readerIndex() < infoLength) {
+                    return;
+                }
+                buf.skipBytes(infoLength);
+            } else {
+                int blockLength = buf.readUnsignedByte();
+                int blockEnd = buf.readerIndex() + blockLength;
+                if (blockEnd > endIndex) {
+                    return;
+                }
+                if (id == 0x2005) {
+                    while (blockEnd - buf.readerIndex() >= 3) {
+                        int statusId = buf.readUnsignedShort();
+                        int statusLength = buf.readUnsignedByte();
+                        int statusEnd = buf.readerIndex() + statusLength;
+                        if (statusEnd > blockEnd) {
+                            return;
+                        }
+                        if (statusId == 0x0006 && statusLength == 1) {
+                            // 0 no network, 1 Wi-Fi, 2 2G, 3 3G, 4 4G
+                            position.set("networkType", buf.readUnsignedByte());
+                        } else if (statusId == 0x2001 && statusLength == 2) {
+                            position.set(Position.KEY_POWER, buf.readUnsignedShort() * 0.1);
+                        }
+                        buf.readerIndex(statusEnd);
+                    }
+                }
+                buf.readerIndex(blockEnd);
+            }
+        }
+    }
+
     private Position decodeLocation(DeviceSession deviceSession, ByteBuf buf, int type) {
 
         Position position = new Position(getProtocolName());
@@ -1176,6 +1221,9 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                             }
                         }
                     }
+                    break;
+                case 0xE8:
+                    decodeJimiExtension(position, buf, endIndex);
                     break;
                 case 0xED:
                     stringValue = buf.readCharSequence(length, StandardCharsets.US_ASCII).toString();
