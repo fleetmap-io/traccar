@@ -42,6 +42,7 @@ import org.traccar.handler.DigitalPortHandler;
 import org.traccar.handler.DistanceHandler;
 import org.traccar.handler.EngineHoursHandler;
 import org.traccar.handler.NoFuelConsumptionHandler;
+import org.traccar.handler.LegalDrivingHandler;
 import org.traccar.handler.FilterHandler;
 import org.traccar.handler.GeocoderHandler;
 import org.traccar.handler.GeolocationHandler;
@@ -141,6 +142,7 @@ public abstract class BasePipelineFactory extends ChannelInitializer<Channel> {
                 DigitalPortHandler.class,
                 ComputedAttributesHandler.class,
                 NoFuelConsumptionHandler.class,
+                LegalDrivingHandler.class,
                 DefaultDataHandler.class,
                 WebDataHandler.class);
 
