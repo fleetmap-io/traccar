@@ -31,6 +31,7 @@ public class HuabaoProtocol extends BaseProtocol {
                 Command.TYPE_VIDEO_STOP,
                 Command.TYPE_VIDEO_LIST,
                 Command.TYPE_VIDEO_PLAYBACK,
+                Command.TYPE_VIDEO_UPLOAD,
                 Command.TYPE_GET_DEVICE_STATUS,
                 Command.TYPE_GET_VERSION,
                 Command.TYPE_CONFIGURATION);
