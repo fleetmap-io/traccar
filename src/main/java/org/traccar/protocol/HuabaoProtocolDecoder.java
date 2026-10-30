@@ -88,6 +88,8 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_VIDEO_PLAYBACK = 0x9201;
     public static final int MSG_VIDEO_LIST = 0x9205;
     public static final int MSG_VIDEO_LIST_RESPONSE = 0x1205;
+    public static final int MSG_VIDEO_UPLOAD = 0x9206;
+    public static final int MSG_VIDEO_UPLOAD_COMPLETE = 0x1206;
     public static final int MSG_ALARM_ATTACHMENT_REQUEST = 0x9208;
     public static final int MSG_SET_PARAMETERS = 0x8103;
     public static final int MSG_QUERY_PARAMETERS = 0x8104;
@@ -485,6 +487,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                     || responseType == MSG_VIDEO_CONTROL
                     || responseType == MSG_VIDEO_PLAYBACK
                     || responseType == MSG_VIDEO_LIST
+                    || responseType == MSG_VIDEO_UPLOAD
                     || responseType == MSG_SET_PARAMETERS) {
                 Position position = new Position(getProtocolName());
                 position.setDeviceId(deviceSession.getDeviceId());
@@ -533,6 +536,21 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             if (!fragmented) {
                 sendGeneralResponse(channel, remoteAddress, id, type, index);
             }
+            return position;
+
+        } else if (type == MSG_VIDEO_UPLOAD_COMPLETE) {
+
+            buf.readUnsignedShort(); // response serial number
+            int result = buf.readUnsignedByte();
+
+            sendGeneralResponse(channel, remoteAddress, id, type, index);
+
+            Position position = new Position(getProtocolName());
+            position.setDeviceId(deviceSession.getDeviceId());
+            getLastLocation(position, null);
+            position.set(
+                    Position.KEY_RESULT,
+                    result == 0 ? "0x9206 upload completed" : "0x9206 upload failed: " + result);
             return position;
 
         } else if (type == MSG_PARAMETERS_RESPONSE) {
