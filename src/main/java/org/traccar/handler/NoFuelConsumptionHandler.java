@@ -13,6 +13,8 @@ import org.traccar.model.Position;
  * or, for devices without a counter, while fuelConsumption is 0. Raises
  * alarmNoFuelConsumption once the distance reaches the device attribute
  * noFuelConsumptionDistance (km). Devices without that attribute are ignored.
+ * If the crossing position already carries another alarm, the alarm is kept pending
+ * and raised on the next position without one (usually the end of the trip).
  */
 @ChannelHandler.Sharable
 public class NoFuelConsumptionHandler extends BaseDataHandler {
@@ -21,6 +23,7 @@ public class NoFuelConsumptionHandler extends BaseDataHandler {
 
     public static final String ATTRIBUTE_THRESHOLD = "noFuelConsumptionDistance"; // km, device attribute
     public static final String ALARM_NO_FUEL_CONSUMPTION = "alarmNoFuelConsumption";
+    public static final String KEY_ALARM_PENDING = "noFuelAlarmPending";
 
     private final IdentityManager identityManager;
 
@@ -41,6 +44,8 @@ public class NoFuelConsumptionHandler extends BaseDataHandler {
                 return position;
             }
 
+            boolean pending = last.getBoolean(KEY_ALARM_PENDING);
+
             Boolean consuming = null;
             if (position.getAttributes().containsKey(Position.KEY_FUEL_USED)
                     && last.getAttributes().containsKey(Position.KEY_FUEL_USED)) {
@@ -50,6 +55,9 @@ public class NoFuelConsumptionHandler extends BaseDataHandler {
             }
             if (consuming == null) {
                 // no fuel data on this position: don't accumulate, so missing CAN data never raises the alarm
+                if (pending) {
+                    raiseAlarm(position);
+                }
                 return position;
             }
 
@@ -60,14 +68,21 @@ public class NoFuelConsumptionHandler extends BaseDataHandler {
             }
             position.set(Position.KEY_NO_FUEL_DISTANCE, distance);
 
-            if (distance >= threshold && lastDistance < threshold
-                    && !position.getAttributes().containsKey(Position.KEY_ALARM)) {
-                position.set(Position.KEY_ALARM, ALARM_NO_FUEL_CONSUMPTION);
+            if (pending || (distance >= threshold && lastDistance < threshold)) {
+                raiseAlarm(position);
             }
         } catch (Exception ex) {
             LOGGER.warn("NoFuelConsumptionHandler failed, deviceId: {}, {}", position.getDeviceId(), ex.getMessage());
         }
         return position;
+    }
+
+    private void raiseAlarm(Position position) {
+        if (position.getAttributes().containsKey(Position.KEY_ALARM)) {
+            position.set(KEY_ALARM_PENDING, true);
+        } else {
+            position.set(Position.KEY_ALARM, ALARM_NO_FUEL_CONSUMPTION);
+        }
     }
 
 }
