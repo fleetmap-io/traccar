@@ -660,6 +660,16 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             sendGeneralResponse(channel, remoteAddress, id, type, index);
 
             Position location = decodeLocation(deviceSession, buf, type);
+            // The DC600 (iStartek) has no network type field. On its Wi-Fi link it
+            // reports 0x30 signal strength 0, on the SIM 19-20, so infer Wi-Fi from
+            // rssi 0. Undocumented heuristic, a SIM with no signal looks the same.
+            if (!location.getAttributes().containsKey("networkType")
+                    && location.getAttributes().containsKey(Position.KEY_RSSI)
+                    && location.getInteger(Position.KEY_RSSI) == 0
+                    && Context.getIdentityManager().lookupAttributeInteger(
+                            location.getDeviceId(), "deviceType", 0, false, false) == DEVICE_TYPE_DC600) {
+                location.set("networkType", 1); // Wi-Fi
+            }
             requestEventAttachments(
                     channel, remoteAddress, Unpooled.wrappedBuffer(ByteBufUtil.getBytes(buf, 5, 6)), location);
             return location;
