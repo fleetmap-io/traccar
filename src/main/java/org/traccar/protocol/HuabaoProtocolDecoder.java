@@ -218,8 +218,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     // Alarms the DC600 raises while it has no live link (e.g. no SIM, out of Wi-Fi
     // range) are stored and arrive later in 0x0704 blind-area batches, so the live
     // 0x0200 path never requested their attachments. Request them here too, DC600
-    // only, and only for alarms younger than huabao.batchAttachmentMaxAge seconds
-    // (default 2 h) so a big backlog doesn't send dozens of 0x9208s at once.
+    // only, for every batched alarm that has attachments.
     private void requestBatchEventAttachments(
             Channel channel, SocketAddress remoteAddress, ByteBuf buf, List<Position> positions) {
         if (channel == null || positions.isEmpty()
@@ -227,11 +226,8 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                         positions.get(0).getDeviceId(), "deviceType", 0, false, false) != DEVICE_TYPE_DC600) {
             return;
         }
-        long maxAge = Context.getConfig().getLong(getProtocolName() + ".batchAttachmentMaxAge", 7200) * 1000;
-        long now = System.currentTimeMillis();
         for (Position position : positions) {
-            if (position.getInteger("alarmAttachments") > 0 && position.getFixTime() != null
-                    && now - position.getFixTime().getTime() <= maxAge) {
+            if (position.getInteger("alarmAttachments") > 0) {
                 requestEventAttachments(
                         channel, remoteAddress, Unpooled.wrappedBuffer(ByteBufUtil.getBytes(buf, 5, 6)), position);
             }
