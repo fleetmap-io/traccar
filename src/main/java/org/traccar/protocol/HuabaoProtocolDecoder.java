@@ -215,6 +215,29 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         postEventMetadata(host, port, identifier, position);
     }
 
+    // Alarms the DC600 raises while it has no live link (e.g. no SIM, out of Wi-Fi
+    // range) are stored and arrive later in 0x0704 blind-area batches, so the live
+    // 0x0200 path never requested their attachments. Request them here too, DC600
+    // only, and only for alarms younger than huabao.batchAttachmentMaxAge seconds
+    // (default 2 h) so a big backlog doesn't send dozens of 0x9208s at once.
+    private void requestBatchEventAttachments(
+            Channel channel, SocketAddress remoteAddress, ByteBuf buf, List<Position> positions) {
+        if (channel == null || positions.isEmpty()
+                || Context.getIdentityManager().lookupAttributeInteger(
+                        positions.get(0).getDeviceId(), "deviceType", 0, false, false) != DEVICE_TYPE_DC600) {
+            return;
+        }
+        long maxAge = Context.getConfig().getLong(getProtocolName() + ".batchAttachmentMaxAge", 7200) * 1000;
+        long now = System.currentTimeMillis();
+        for (Position position : positions) {
+            if (position.getInteger("alarmAttachments") > 0 && position.getFixTime() != null
+                    && now - position.getFixTime().getTime() <= maxAge) {
+                requestEventAttachments(
+                        channel, remoteAddress, Unpooled.wrappedBuffer(ByteBufUtil.getBytes(buf, 5, 6)), position);
+            }
+        }
+    }
+
     // HTTP/1.1 explicitly: the default client tries an h2c upgrade first, and on a
     // plain HTTP/1.1 sink that can leave the POST body without a Content-Length,
     // which crashes the sink's keep-alive parser.
@@ -692,7 +715,9 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
             sendGeneralResponse(channel, remoteAddress, id, type, index);
 
-            return decodeLocationBatch(deviceSession, buf, type);
+            List<Position> positions = decodeLocationBatch(deviceSession, buf, type);
+            requestBatchEventAttachments(channel, remoteAddress, buf, positions);
+            return positions;
 
         } else if (type == MSG_TIME_SYNC_REQUEST) {
 
@@ -986,7 +1011,12 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         position.setCourse(buf.readUnsignedShort());
         position.setTime(readDate(buf, deviceSession.get(DeviceSession.KEY_TIMEZONE)));
 
-        if (buf.readableBytes() == 20) {
+        // A vendor-specific fixed 20-byte tail (battery, odometer x1000, area id...).
+        // The DC600 (iStartek) only sends standard JT808 additional items, and a
+        // report with just 0x01/0x25/0x30/0x31 is also exactly 20 bytes, so for it
+        // this branch read 0x01's DWORD shifted by two bytes (odometer ~356M km).
+        if (buf.readableBytes() == 20 && Context.getIdentityManager().lookupAttributeInteger(
+                position.getDeviceId(), "deviceType", 0, false, false) != DEVICE_TYPE_DC600) {
 
             buf.skipBytes(4); // remaining battery and mileage
             position.set(Position.KEY_ODOMETER, buf.readUnsignedInt() * 1000);
