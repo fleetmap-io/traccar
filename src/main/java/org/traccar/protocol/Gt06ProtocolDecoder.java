@@ -857,7 +857,12 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
             getLastLocation(position, null);
         }
 
-        if (hasLbs(type)) {
+        if (type == MSG_GPS_2) {
+            int mcc = buf.readUnsignedShort();
+            int mnc = BitUtil.check(mcc, 15) ? buf.readUnsignedShort() : buf.readUnsignedByte();
+            position.setNetwork(new Network(CellTower.from(
+                    BitUtil.to(mcc, 15), mnc, buf.readInt(), buf.readLong())));
+        } else if (hasLbs(type)) {
             decodeLbs(position, buf, hasStatus(type));
         }
 
@@ -895,7 +900,7 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
             }
         }
 
-        if ((type == MSG_GPS_LBS_2 || type == MSG_GPS_LBS_3) && buf.readableBytes() >= 3 + 6) {
+        if ((type == MSG_GPS_LBS_2 || type == MSG_GPS_LBS_3 || type == MSG_GPS_2) && buf.readableBytes() >= 3 + 6) {
             position.set(Position.KEY_IGNITION, buf.readUnsignedByte() > 0);
             position.set(Position.KEY_EVENT, buf.readUnsignedByte()); // reason
             position.set(Position.KEY_ARCHIVE, buf.readUnsignedByte() > 0);
