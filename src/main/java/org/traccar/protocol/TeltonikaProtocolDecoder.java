@@ -193,6 +193,40 @@ public class TeltonikaProtocolDecoder extends BaseProtocolDecoder {
         }
     }
 
+    /**
+     * Map Teltonika network-type IO values to the same 0–4 enum used by Huabao
+     * ({@code networkType}: 0 none, 1 Wi‑Fi, 2 2G, 3 3G, 4 4G/LTE).
+     */
+    private Integer decodeTeltonikaNetworkType(int ioId, int value) {
+        if (ioId == 79) {
+            // FM36xx: 0=2G, 2=3G, 8=LTE-M1, 9=NB-IoT
+            switch (value) {
+                case 0:
+                    return 2;
+                case 2:
+                    return 3;
+                case 8:
+                case 9:
+                    return 4;
+                default:
+                    return null;
+            }
+        }
+        // FMB/FTC IO 237: 0=3G, 1=GSM, 2=4G, 3=LTE-M1, 4=NB1, 99=unknown
+        switch (value) {
+            case 0:
+                return 3;
+            case 1:
+                return 2;
+            case 2:
+            case 3:
+            case 4:
+                return 4;
+            default:
+                return null;
+        }
+    }
+
     private void decodeOtherParameter(Position position, int id, ByteBuf buf, int length) {
         long value;
         double doubleValue;
@@ -276,6 +310,17 @@ public class TeltonikaProtocolDecoder extends BaseProtocolDecoder {
                     position.set(Position.KEY_DRIVER_UNIQUE_ID, String.format("%016X", driverUniqueId));
                 }
                 break;
+            case 79:
+                // FM36xx network type: 0=2G, 2=3G, 8=LTE-M1, 9=NB-IoT
+                {
+                    long networkTypeRaw = readValue(buf, length, false);
+                    position.set(Position.PREFIX_IO + id, networkTypeRaw);
+                    Integer networkType = decodeTeltonikaNetworkType(id, (int) networkTypeRaw);
+                    if (networkType != null) {
+                        position.set("networkType", networkType);
+                    }
+                }
+                break;
             case 80:
                 position.set("workMode", readValue(buf, length, false));
                 break;
@@ -356,6 +401,20 @@ public class TeltonikaProtocolDecoder extends BaseProtocolDecoder {
             case 236:
                 if (readValue(buf, length, false) == 1) {
                     position.set(Position.KEY_ALARM, Position.ALARM_OVERSPEED);
+                }
+                break;
+            case 237:
+                // FMB/FTC network type (1 byte): 0=3G, 1=GSM, 2=4G, 3=LTE-M1, 4=NB1, 99=unknown
+                // Longer payloads (e.g. axis on some models) stay as raw io237.
+                {
+                    long networkTypeRaw = readValue(buf, length, false);
+                    position.set(Position.PREFIX_IO + id, networkTypeRaw);
+                    if (length == 1) {
+                        Integer networkType = decodeTeltonikaNetworkType(id, (int) networkTypeRaw);
+                        if (networkType != null) {
+                            position.set("networkType", networkType);
+                        }
+                    }
                 }
                 break;
             case 239:
