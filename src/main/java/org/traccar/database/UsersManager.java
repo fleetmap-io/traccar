@@ -84,7 +84,7 @@ public class UsersManager extends SimpleObjectManager<User> {
     }
 
     /**
-     * Persist a stable API token the first time a session needs one.
+     * Persist a stable API token the first time the user logs in via POST /session.
      * Existing tokens are left unchanged (including when a client clears them via PUT).
      */
     public User ensureApiToken(User user) throws SQLException {

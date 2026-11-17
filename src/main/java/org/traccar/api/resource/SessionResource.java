@@ -91,7 +91,7 @@ public class SessionResource extends BaseResource {
 
         if (userId != null) {
             Context.getPermissionsManager().checkUserEnabled(userId);
-            return Context.getUsersManager().ensureApiToken(Context.getPermissionsManager().getUser(userId));
+            return Context.getPermissionsManager().getUser(userId);
         } else {
             throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND).build());
         }
