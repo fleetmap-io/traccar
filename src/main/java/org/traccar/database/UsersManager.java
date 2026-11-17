@@ -16,8 +16,10 @@
  */
 package org.traccar.database;
 
+import java.sql.SQLException;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.traccar.model.User;
@@ -79,6 +81,30 @@ public class UsersManager extends SimpleObjectManager<User> {
 
     public User getUserByToken(String token) {
         return usersTokens.get(token);
+    }
+
+    /**
+     * Persist a stable API token the first time the user logs in via POST /session.
+     * Existing tokens are left unchanged (including when a client clears them via PUT).
+     */
+    public User ensureApiToken(User user) throws SQLException {
+        if (user == null || user.getToken() != null) {
+            return user;
+        }
+        synchronized (this) {
+            User cached = getById(user.getId());
+            if (cached != null && cached.getToken() != null) {
+                return cached;
+            }
+            User toUpdate = cached != null ? cached : user;
+            String token;
+            do {
+                token = UUID.randomUUID().toString();
+            } while (usersTokens.containsKey(token));
+            toUpdate.setToken(token);
+            updateItem(toUpdate);
+            return getById(toUpdate.getId());
+        }
     }
 
 }
