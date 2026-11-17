@@ -192,8 +192,13 @@ public class StartekProtocolDecoder extends BaseProtocolDecoder {
 
         position.set(Position.KEY_ODOMETER, parser.nextLong());
 
-        position.setNetwork(new Network(CellTower.from(
-                parser.nextInt(), parser.nextInt(), parser.nextHexInt(), parser.nextHexInt(), parser.nextInt())));
+        int mcc = parser.nextInt();
+        int mnc = parser.nextInt();
+        int lac = parser.nextHexInt();
+        int cid = parser.nextHexInt();
+        int rssi = parser.nextInt();
+        position.set(Position.KEY_RSSI, rssi);
+        position.setNetwork(new Network(CellTower.from(mcc, mnc, lac, cid, rssi)));
 
         position.set(Position.KEY_STATUS, parser.nextHexInt());
 
