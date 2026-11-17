@@ -91,7 +91,7 @@ public class SessionResource extends BaseResource {
 
         if (userId != null) {
             Context.getPermissionsManager().checkUserEnabled(userId);
-            return Context.getPermissionsManager().getUser(userId);
+            return Context.getUsersManager().ensureApiToken(Context.getPermissionsManager().getUser(userId));
         } else {
             throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND).build());
         }
@@ -105,7 +105,7 @@ public class SessionResource extends BaseResource {
         if (user != null) {
             request.getSession().setAttribute(USER_ID_KEY, user.getId());
             LogAction.login(user.getId());
-            return user;
+            return Context.getUsersManager().ensureApiToken(user);
         } else {
             LogAction.failedLogin(ServletHelper.retrieveRemoteAddress(request));
             throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED).build());
