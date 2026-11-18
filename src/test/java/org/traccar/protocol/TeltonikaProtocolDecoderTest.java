@@ -117,6 +117,24 @@ public class TeltonikaProtocolDecoderTest extends ProtocolTest {
 
 
     @Test
+    public void testDecodeNetworkType() throws Exception {
+
+        TeltonikaProtocolDecoder decoder = new TeltonikaProtocolDecoder(null, false);
+
+        verifyNull(decoder, binary(
+                "000F313233343536373839303132333435"));
+
+        verifyAttribute(decoder, binary(
+                "0000000000000023080100000140d4e3ec6e000cc661d01674a5e000000000080000000101ed02000000010000fd5d"),
+                "networkType", "4g");
+
+        verifyAttribute(decoder, binary(
+                "0000000000000023080100000140d4e3ec6e000cc661d01674a5e000000000080000000101ed02000000010000fd5d"),
+                "io237", 2L);
+
+    }
+
+    @Test
     public void testDecodePhoto() throws Exception {
 
         TeltonikaProtocolDecoder decoder = new TeltonikaProtocolDecoder(null, false);

@@ -358,6 +358,32 @@ public class TeltonikaProtocolDecoder extends BaseProtocolDecoder {
                     position.set(Position.KEY_ALARM, Position.ALARM_OVERSPEED);
                 }
                 break;
+            case 237:
+                value = readValue(buf, length, false);
+                position.set(Position.PREFIX_IO + id, value);
+                String networkType;
+                switch ((int) value) {
+                    case 0:
+                        networkType = "3g";
+                        break;
+                    case 1:
+                        networkType = "gsm";
+                        break;
+                    case 2:
+                        networkType = "4g";
+                        break;
+                    case 3:
+                        networkType = "catm1";
+                        break;
+                    case 4:
+                        networkType = "nbiot";
+                        break;
+                    default:
+                        networkType = "unknown";
+                        break;
+                }
+                position.set("networkType", networkType);
+                break;
             case 239:
                 position.set(Position.KEY_IGNITION, readValue(buf, length, false) == 1);
                 break;
