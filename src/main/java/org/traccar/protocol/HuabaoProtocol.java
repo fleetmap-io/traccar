@@ -34,7 +34,8 @@ public class HuabaoProtocol extends BaseProtocol {
                 Command.TYPE_VIDEO_UPLOAD,
                 Command.TYPE_GET_DEVICE_STATUS,
                 Command.TYPE_GET_VERSION,
-                Command.TYPE_CONFIGURATION);
+                Command.TYPE_CONFIGURATION,
+                Command.TYPE_SET_WIFI);
         addServer(new TrackerServer(false, getName()) {
             @Override
             protected void addProtocolHandlers(PipelineBuilder pipeline) {
