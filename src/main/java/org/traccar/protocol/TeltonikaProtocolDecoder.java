@@ -313,9 +313,7 @@ public class TeltonikaProtocolDecoder extends BaseProtocolDecoder {
             case 79:
                 // FM36xx network type: 0=2G, 2=3G, 8=LTE-M1, 9=NB-IoT
                 {
-                    long networkTypeRaw = readValue(buf, length, false);
-                    position.set(Position.PREFIX_IO + id, networkTypeRaw);
-                    Integer networkType = decodeTeltonikaNetworkType(id, (int) networkTypeRaw);
+                    Integer networkType = decodeTeltonikaNetworkType(id, (int) readValue(buf, length, false));
                     if (networkType != null) {
                         position.set("networkType", networkType);
                     }
@@ -408,12 +406,13 @@ public class TeltonikaProtocolDecoder extends BaseProtocolDecoder {
                 // Longer payloads (e.g. axis on some models) stay as raw io237.
                 {
                     long networkTypeRaw = readValue(buf, length, false);
-                    position.set(Position.PREFIX_IO + id, networkTypeRaw);
                     if (length == 1) {
                         Integer networkType = decodeTeltonikaNetworkType(id, (int) networkTypeRaw);
                         if (networkType != null) {
                             position.set("networkType", networkType);
                         }
+                    } else {
+                        position.set(Position.PREFIX_IO + id, networkTypeRaw);
                     }
                 }
                 break;
