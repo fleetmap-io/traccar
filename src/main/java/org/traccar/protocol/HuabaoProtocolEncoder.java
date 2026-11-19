@@ -44,6 +44,43 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
         super(protocol);
     }
 
+    // Jimi text command that joins an external Wi-Fi network (JC450 / JC371,
+    // jimi-iot-brasil wiki-automatizador "Rede e WiFi"): SSID,ON,<ssid>,<password>#.
+    // The password is left out for an open network. Returns null when a value
+    // would break the comma/# framing or isn't plain ASCII.
+    static String formatWifiCommand(String ssid, String password) {
+        if (ssid == null || ssid.isEmpty() || ssid.length() > 32 || !isWifiText(ssid)) {
+            return null;
+        }
+        if (password == null || password.isEmpty()) {
+            return "SSID,ON," + ssid + "#";
+        }
+        if (password.length() > 64 || !isWifiText(password)) {
+            return null;
+        }
+        return "SSID,ON," + ssid + "," + password + "#";
+    }
+
+    private static boolean isWifiText(String value) {
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c < 0x20 || c > 0x7E || c == ',' || c == '#') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Log-safe form of a Jimi text payload: keeps the command name, hides the
+    // values of commands that carry credentials (APN, Wi-Fi network/hotspot).
+    static String redactPayload(String payload) {
+        String upper = payload.toUpperCase();
+        if (upper.startsWith("APN,") || upper.startsWith("SSID,") || upper.startsWith("WIFIAP,")) {
+            return payload.substring(0, payload.indexOf(',') + 1) + "<redacted>";
+        }
+        return payload.replace("\r", "\\r").replace("\n", "\\n");
+    }
+
     static ByteBuf encodeTransparent(ByteBuf id, String payload, int subtype) {
         ByteBuf data = Unpooled.buffer();
         data.writeByte(subtype);
@@ -204,9 +241,19 @@ public class HuabaoProtocolEncoder extends BaseProtocolEncoder {
                     LOGGER.error(
                             "Huabao command encoded deviceId={} deviceType={} subtype=0x{} payload={}",
                             command.getDeviceId(), deviceType, Integer.toHexString(subtype).toUpperCase(),
-                            payload.startsWith("APN,") ? "APN,<redacted>"
-                                    : payload.replace("\r", "\\r").replace("\n", "\\n"));
+                            redactPayload(payload));
                     return encodeTransparent(id, payload, subtype);
+                case Command.TYPE_SET_WIFI:
+                    int wifiDeviceType = Context.getIdentityManager().lookupAttributeInteger(
+                            command.getDeviceId(), "deviceType", 0, false, false);
+                    String ssid = command.getString(Command.KEY_SSID);
+                    String wifiCommand = wifiDeviceType == DEVICE_TYPE_JC450 || wifiDeviceType == DEVICE_TYPE_JC371
+                            ? formatWifiCommand(ssid, command.getString(Command.KEY_PASSWORD)) : null;
+                    LOGGER.error(
+                            "Huabao Wi-Fi command deviceId={} deviceType={} ssid={} {}",
+                            command.getDeviceId(), wifiDeviceType, ssid,
+                            wifiCommand != null ? "encoded" : "rejected (unsupported device or invalid ssid/password)");
+                    return wifiCommand != null ? encodeTransparent(id, wifiCommand, 0xF0) : null;
                 case Command.TYPE_ENGINE_STOP:
                 case Command.TYPE_ENGINE_RESUME:
                     data.writeCharSequence(command.getType().equals(Command.TYPE_ENGINE_STOP) ? "#0;1" : "#0;0",

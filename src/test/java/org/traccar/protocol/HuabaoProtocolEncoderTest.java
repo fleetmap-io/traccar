@@ -1,6 +1,7 @@
 package org.traccar.protocol;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
@@ -126,6 +127,28 @@ public class HuabaoProtocolEncoderTest extends ProtocolTest {
         } finally {
             id.release();
         }
+    }
+
+    @Test
+    public void testFormatWifiCommand() {
+        assertEquals("SSID,ON,Garage Wi-Fi,pa$$w0rd@1#",
+                HuabaoProtocolEncoder.formatWifiCommand("Garage Wi-Fi", "pa$$w0rd@1"));
+        assertEquals("SSID,ON,OpenNet#", HuabaoProtocolEncoder.formatWifiCommand("OpenNet", ""));
+        assertEquals("SSID,ON,OpenNet#", HuabaoProtocolEncoder.formatWifiCommand("OpenNet", null));
+        assertNull(HuabaoProtocolEncoder.formatWifiCommand("", "secret12"));
+        assertNull(HuabaoProtocolEncoder.formatWifiCommand(null, "secret12"));
+        assertNull(HuabaoProtocolEncoder.formatWifiCommand("bad,name", "secret12"));
+        assertNull(HuabaoProtocolEncoder.formatWifiCommand("name", "bad#pass"));
+        assertNull(HuabaoProtocolEncoder.formatWifiCommand("caf\u00e9", "secret12"));
+        assertNull(HuabaoProtocolEncoder.formatWifiCommand("123456789012345678901234567890123", "secret12"));
+    }
+
+    @Test
+    public void testRedactPayload() {
+        assertEquals("SSID,<redacted>", HuabaoProtocolEncoder.redactPayload("SSID,ON,net,secret#"));
+        assertEquals("WIFIAP,<redacted>", HuabaoProtocolEncoder.redactPayload("WIFIAP,ON,hotspot,secret#"));
+        assertEquals("APN,<redacted>", HuabaoProtocolEncoder.redactPayload("APN,internet,,,,,,user,,pass#"));
+        assertEquals("DMSSEP,1,1#", HuabaoProtocolEncoder.redactPayload("DMSSEP,1,1#"));
     }
 
     @Test
