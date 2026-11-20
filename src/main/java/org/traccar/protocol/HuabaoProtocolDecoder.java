@@ -947,6 +947,20 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         return sign * (Math.abs(b1) + b2 / 255.0);
     }
 
+    // Jimi 0xE8 video alarms for face ID (protocol v1.5.2, table 7-10).
+    private static String jimiFaceIdEvent(int alarmId) {
+        switch (alarmId) {
+            case 0x0005:
+                return "failed";
+            case 0x0006:
+                return "success";
+            case 0x000C:
+                return "driverChanged";
+            default:
+                return null;
+        }
+    }
+
     // Jimi IoT 0xE8 extension (JC371/JC450 protocol v1.5.2, sections 7.2 and 7.3).
     // Items below 0x1000 are extended alarms, the rest are WORD id + BYTE length blocks.
     // Stops quietly on anything malformed; the caller resets the reader index.
@@ -958,10 +972,24 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                 if (endIndex - buf.readerIndex() < idLength + 1) {
                     return;
                 }
+                String faceIdEvent = jimiFaceIdEvent(id);
+                if (faceIdEvent != null && idLength > 0) {
+                    position.set("faceIdIdentifier", ByteBufUtil.hexDump(buf, buf.readerIndex(), idLength));
+                }
                 buf.skipBytes(idLength);
                 int infoLength = buf.readUnsignedByte();
                 if (endIndex - buf.readerIndex() < infoLength) {
                     return;
+                }
+                if (faceIdEvent != null) {
+                    // The doc (v1.5.2, 7.2.1) doesn't define these TLVs, so keep them raw
+                    // until a real event shows where the face/driver ID is (ticket #347).
+                    position.set("faceIdEvent", faceIdEvent);
+                    if (infoLength > 0) {
+                        position.set("faceIdInfo", ByteBufUtil.hexDump(buf, buf.readerIndex(), infoLength));
+                    }
+                    LOGGER.error("Huabao Jimi face ID event deviceId={} alarmId=0x{} event={} infoLength={}",
+                            position.getDeviceId(), String.format("%04X", id), faceIdEvent, infoLength);
                 }
                 buf.skipBytes(infoLength);
             } else {
