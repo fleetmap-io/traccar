@@ -961,6 +961,27 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         }
     }
 
+    // Face ID info TLVs (WORD type, BYTE length, ASCII value), seen on a real JC371 (ticket #347):
+    // 0x0005 = driver ID registered on the camera, 0x0006 = driver name. Doesn't move the reader index.
+    private void decodeJimiFaceIdInfo(Position position, ByteBuf buf, int endIndex) {
+        int index = buf.readerIndex();
+        while (endIndex - index >= 3) {
+            int type = buf.getUnsignedShort(index);
+            int length = buf.getUnsignedByte(index + 2);
+            index += 3;
+            if (index + length > endIndex) {
+                return;
+            }
+            if (type == 0x0005 && length > 0) {
+                String driverId = buf.toString(index, length, StandardCharsets.US_ASCII).trim();
+                if (!driverId.isEmpty()) {
+                    position.set(Position.KEY_DRIVER_UNIQUE_ID, driverId);
+                }
+            }
+            index += length;
+        }
+    }
+
     // Jimi IoT 0xE8 extension (JC371/JC450 protocol v1.5.2, sections 7.2 and 7.3).
     // Items below 0x1000 are extended alarms, the rest are WORD id + BYTE length blocks.
     // Stops quietly on anything malformed; the caller resets the reader index.
@@ -987,6 +1008,9 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                     position.set("faceIdEvent", faceIdEvent);
                     if (infoLength > 0) {
                         position.set("faceIdInfo", ByteBufUtil.hexDump(buf, buf.readerIndex(), infoLength));
+                        if (!faceIdEvent.equals("failed")) {
+                            decodeJimiFaceIdInfo(position, buf, buf.readerIndex() + infoLength);
+                        }
                     }
                     LOGGER.error("Huabao Jimi face ID event deviceId={} alarmId=0x{} event={} infoLength={}",
                             position.getDeviceId(), String.format("%04X", id), faceIdEvent, infoLength);
