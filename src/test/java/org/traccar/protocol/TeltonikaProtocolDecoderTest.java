@@ -31,9 +31,10 @@ public class TeltonikaProtocolDecoderTest extends ProtocolTest {
                 "00000000000000388e010000019abd75b80000fb78550013f7b1c0003200000a000000000003000100ef0000000002001000fac335005763ffff9c00000000010000e696"),
                 0x63FFFF9CL, 0x00FAC335L);
 
-        verifyInvalidCanOdometer(decoder, binary(
+        // a real CAN odometer can sit in the 0x63xxxxxx range (e.g. ~1,677,0xx km), only the exact marker is invalid
+        verifyAttribute(decoder, binary(
                 "00000000000000388e010000019abd75b80000fb78550013f7b1c0003200000a000000000003000100ef0000000002001000fac335005763e88e7000000000010000a7a1"),
-                0x63E88E70L, 0x00FAC335L);
+                Position.KEY_ODOMETER, 0x63E88E70L);
 
         verifyInvalidCanOdometer(decoder, binary(
                 "00000000000000388e010000019abd75b80000fb78550013f7b1c0003200000a000000000003000100ef0000000002001004f04c3e005700000000000000000100009f77"),
