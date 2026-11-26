@@ -227,6 +227,10 @@ public class TeltonikaProtocolDecoder extends BaseProtocolDecoder {
         }
     }
 
+    private static boolean isValidCanOdometer(long value) {
+        return value != 0 && (value & 0xFF000000L) != 0x63000000L;
+    }
+
     private void decodeOtherParameter(Position position, int id, ByteBuf buf, int length) {
         long value;
         double doubleValue;
@@ -244,8 +248,17 @@ public class TeltonikaProtocolDecoder extends BaseProtocolDecoder {
                 position.set(Position.PREFIX_ADC + 2, readValue(buf, length, false));
                 break;
             case 16:
-            case 87:
                 position.set(Position.KEY_ODOMETER, readValue(buf, length, false));
+                break;
+            case 87:
+                value = readValue(buf, length, false);
+                if (isValidCanOdometer(value)) {
+                    position.set(Position.KEY_ODOMETER, value);
+                } else {
+                    // CAN asleep: device sends 0 or a 0x63xxxxxx "not available" marker;
+                    // drop odometer (also IO16's) so copyAttributes keeps the last value
+                    position.getAttributes().remove(Position.KEY_ODOMETER);
+                }
                 break;
             case 17:
                 position.set("axisX", readValue(buf, length, true));

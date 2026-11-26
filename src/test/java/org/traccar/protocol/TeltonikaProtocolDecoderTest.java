@@ -5,7 +5,40 @@ import org.junit.Test;
 import org.traccar.ProtocolTest;
 import org.traccar.model.Position;
 
+import java.util.List;
+
+import static org.junit.Assert.assertFalse;
+
 public class TeltonikaProtocolDecoderTest extends ProtocolTest {
+
+    @Test
+    public void testDecodeCanOdometerInvalid() throws Exception {
+
+        TeltonikaProtocolDecoder decoder = new TeltonikaProtocolDecoder(null, false);
+
+        verifyNull(decoder, binary(
+                "000F313233343536373839303132333435"));
+
+        verifyAttribute(decoder, binary(
+                "00000000000000388e010000019abd75b80000fb78550013f7b1c0003200000a000000000003000100ef0000000002001000fac33500570876fa540000000001000096c0"),
+                Position.KEY_ODOMETER, 142015060L);
+
+        verifyNoOdometer(decoder, binary(
+                "00000000000000388e010000019abd75b80000fb78550013f7b1c0003200000a000000000003000100ef0000000002001000fac335005763ffff9c00000000010000e696"));
+
+        verifyNoOdometer(decoder, binary(
+                "00000000000000388e010000019abd75b80000fb78550013f7b1c0003200000a000000000003000100ef0000000002001000fac335005763e88e7000000000010000a7a1"));
+
+        verifyNoOdometer(decoder, binary(
+                "00000000000000388e010000019abd75b80000fb78550013f7b1c0003200000a000000000003000100ef0000000002001004f04c3e005700000000000000000100009f77"));
+
+    }
+
+    @SuppressWarnings("unchecked")
+    private void verifyNoOdometer(TeltonikaProtocolDecoder decoder, Object object) throws Exception {
+        List<Position> positions = (List<Position>) decoder.decode(null, null, object);
+        assertFalse(positions.get(0).getAttributes().containsKey(Position.KEY_ODOMETER));
+    }
 
     @Test
     public void testDecode() throws Exception {
