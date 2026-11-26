@@ -7,6 +7,7 @@ import org.traccar.model.Position;
 
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 public class TeltonikaProtocolDecoderTest extends ProtocolTest {
@@ -24,20 +25,27 @@ public class TeltonikaProtocolDecoderTest extends ProtocolTest {
                 Position.KEY_ODOMETER, 142015060L);
 
         verifyNoOdometer(decoder, binary(
-                "00000000000000388e010000019abd75b80000fb78550013f7b1c0003200000a000000000003000100ef0000000002001000fac335005763ffff9c00000000010000e696"));
+                "00000000000000388e010000019abd75b80000fb78550013f7b1c0003200000a000000000003000100ef0000000002001000fac335005763ffff9c00000000010000e696"),
+                0x63FFFF9CL, 0x00FAC335L);
 
         verifyNoOdometer(decoder, binary(
-                "00000000000000388e010000019abd75b80000fb78550013f7b1c0003200000a000000000003000100ef0000000002001000fac335005763e88e7000000000010000a7a1"));
+                "00000000000000388e010000019abd75b80000fb78550013f7b1c0003200000a000000000003000100ef0000000002001000fac335005763e88e7000000000010000a7a1"),
+                0x63E88E70L, 0x00FAC335L);
 
         verifyNoOdometer(decoder, binary(
-                "00000000000000388e010000019abd75b80000fb78550013f7b1c0003200000a000000000003000100ef0000000002001004f04c3e005700000000000000000100009f77"));
+                "00000000000000388e010000019abd75b80000fb78550013f7b1c0003200000a000000000003000100ef0000000002001004f04c3e005700000000000000000100009f77"),
+                0L, 0x04F04C3EL);
 
     }
 
     @SuppressWarnings("unchecked")
-    private void verifyNoOdometer(TeltonikaProtocolDecoder decoder, Object object) throws Exception {
+    private void verifyNoOdometer(
+            TeltonikaProtocolDecoder decoder, Object object, long io87, long io16) throws Exception {
         List<Position> positions = (List<Position>) decoder.decode(null, null, object);
-        assertFalse(positions.get(0).getAttributes().containsKey(Position.KEY_ODOMETER));
+        Position position = positions.get(0);
+        assertFalse(position.getAttributes().containsKey(Position.KEY_ODOMETER));
+        assertEquals(io87, position.getLong("io87Invalid"));
+        assertEquals(io16, position.getLong("io16Dropped"));
     }
 
     @Test

@@ -256,8 +256,13 @@ public class TeltonikaProtocolDecoder extends BaseProtocolDecoder {
                     position.set(Position.KEY_ODOMETER, value);
                 } else {
                     // CAN asleep: device sends 0 or a 0x63xxxxxx "not available" marker;
-                    // drop odometer (also IO16's) so copyAttributes keeps the last value
-                    position.getAttributes().remove(Position.KEY_ODOMETER);
+                    // drop odometer (also IO16's) so copyAttributes keeps the last value,
+                    // but keep the dropped values for debugging
+                    position.set("io87Invalid", value);
+                    Object io16 = position.getAttributes().remove(Position.KEY_ODOMETER);
+                    if (io16 != null) {
+                        position.set("io16Dropped", (Long) io16);
+                    }
                 }
                 break;
             case 17:
